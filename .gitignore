@@ -1,5 +1,99 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# ============================================================
+# Quadra - .gitignore
+# Il repository DEVE essere privato. Questo file e' una seconda
+# barriera: specifiche e dati aziendali non devono mai finire in git.
+# Attenzione: .gitignore non protegge file gia' committati.
+# ============================================================
+
+# --- Specifiche e documentazione interna (NON pubblicare) ---
+docs/specifiche/*
+!docs/specifiche/.gitkeep
+**/Quadra - Specifiche*.md
+**/Quadra - Stato*.md
+**/PROMPT_FASE_*.md
+**/mappatura-scadenzario*.md
+
+# --- Dati aziendali, esempi, riferimenti ---
+data/*
+!data/.gitkeep
+reference/*
+!reference/.gitkeep
+
+# --- Dati in qualunque posizione (eccetto fixture anonimizzate) ---
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.xlsm
+*.ods
+*.pkl
+*.npy
+*.parquet
+*.sqlite
+*.db
+!tests/fixtures/**
+
+# --- Segreti e credenziali ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+*-credentials*.json
+credentials*.json
+client_secret*.json
+google-*.json
+secrets/
+
+# --- Vercel / Next.js / Node ---
+.vercel
+.next/
+out/
+node_modules/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+playwright-report/
+test-results/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Database locale e migrazioni temporanee ---
+*.local.sql
+dump*.sql
+
+# --- Python (script di riferimento) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- Claude Code: impostazioni locali ---
+.claude/settings.local.json
+.claude/*.local.*
+
+# --- Editor e sistema operativo ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.log
+
+# --- Obsidian (non appartiene a questo repository) ---
+.obsidian/
+
+# --- nextJS ---
+
 # dependencies
 /node_modules
 /.pnp

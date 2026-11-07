@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quadra-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["cross-env", "DEV_SKIP_AUTH=1", "AUTH_SECRET=solo-locale", "AUTH_TRUST_HOST=true", "next", "dev", "-p", "3100"],
+      "port": 3100
+    }
+  ]
+}
