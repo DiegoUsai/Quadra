@@ -1,0 +1,236 @@
+<div class="bd" id="bd">
+  <h1>Budget e consuntivo: storico 2023-2027</h1>
+  <p class="sub">Dove il budget ha sbagliato negli anni: livello annuo, distribuzione nei mesi, tipo di ricavo, contratti non previsti e costi. Ricavi in lavorato, azienda intera; il 2026 arriva fino a ottobre. Importi in migliaia di euro (k€).</p>
+
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-tab="t-sintesi" aria-selected="true">Sintesi annuale</button>
+    <button role="tab" data-tab="t-mesi" aria-selected="false">Mensilizzazione</button>
+    <button role="tab" data-tab="t-tipo" aria-selected="false">Canoni e variabile</button>
+    <button role="tab" data-tab="t-nuovi" aria-selected="false">Contratti non a budget</button>
+    <button role="tab" data-tab="t-costi" aria-selected="false">Costi</button>
+    <button role="tab" data-tab="t-y27" aria-selected="false">Budget 2027</button>
+    <button role="tab" data-tab="t-fasi" aria-selected="false">Fasi di progetto</button>
+    <button role="tab" data-tab="t-doc" aria-selected="false">Documentale 2026</button>
+  </div>
+
+  <!-- Sintesi -->
+  <section class="tab on" id="t-sintesi">
+    <div class="kpis" id="kpis">
+      <div class="card kpi" data-anno="2023"><div class="lab">Ricavi 2023 contro budget ponderato</div><div class="big" data-source="annuale" data-field="scost_pesato" data-where="anno=2023">—</div><div class="det"><span data-source="annuale" data-field="consuntivo" data-where="anno=2023">—</span> contro <span data-source="annuale" data-field="budget_pesato" data-where="anno=2023">—</span></div></div>
+      <div class="card kpi" data-anno="2024"><div class="lab">Ricavi 2024 contro budget ponderato</div><div class="big" data-source="annuale" data-field="scost_pesato" data-where="anno=2024">—</div><div class="det"><span data-source="annuale" data-field="consuntivo" data-where="anno=2024">—</span> contro <span data-source="annuale" data-field="budget_pesato" data-where="anno=2024">—</span></div></div>
+      <div class="card kpi" data-anno="2025"><div class="lab">Ricavi 2025 contro budget ponderato</div><div class="big" data-source="annuale" data-field="scost_pesato" data-where="anno=2025">—</div><div class="det"><span data-source="annuale" data-field="consuntivo" data-where="anno=2025">—</span> contro <span data-source="annuale" data-field="budget_pesato" data-where="anno=2025">—</span></div></div>
+      <div class="card kpi" data-anno="2026"><div class="lab">Ricavi 2026 (gen-ott) contro budget ponderato</div><div class="big" data-source="annuale" data-field="scost_pesato" data-where="anno=2026">—</div><div class="det"><span data-source="annuale" data-field="consuntivo" data-where="anno=2026">—</span> contro <span data-source="annuale" data-field="budget_pesato" data-where="anno=2026">—</span></div></div>
+    </div>
+    <div class="card">
+      <h2>Budget e consuntivo dei ricavi per anno</h2>
+      <p class="note">Budget ponderato per la confidenza, lordo e consuntivo, in migliaia di euro. Il 2026 confronta solo i mesi già consuntivati. Passa il mouse sulle barre per lo scostamento.</p>
+      <div class="chart" id="ch-annuale" data-source="annuale"></div>
+    </div>
+    <div class="card">
+      <h2>Scostamenti per anno</h2>
+      <p class="note">Scostamento = consuntivo diviso budget meno uno. Mesi in linea = mesi con consuntivo almeno pari al budget ponderato. Quota nuovi = ricavi di contratti senza una riga di budget omonima nell’anno.</p>
+      <div class="scroll"><table id="tb-annuale" data-source="annuale" data-row-key="anno">
+        <thead><tr><th data-field="anno">Anno</th><th data-field="budget_lordo">Budget lordo</th><th data-field="budget_pesato">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="scost_pesato">Scost. ponderato</th><th data-field="scost_lordo">Scost. lordo</th><th data-field="mesi_ok">Mesi in linea</th><th data-field="quota_nuovi">Quota nuovi</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- Mensilizzazione -->
+  <section class="tab" id="t-mesi">
+    <div class="card">
+      <h2>Peso medio di ogni mese sull’anno</h2>
+      <p class="note">Media 2023-2025 (anni completi): quanto pesava il mese nel budget e quanto nei fatti, con il peso del budget 2027.</p>
+      <div class="chart" id="ch-peso" data-source="stagionalita"></div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h2>Consuntivo diviso budget, per mese</h2>
+        <p class="note">Sotto il 100% il mese è andato peggio del budget ponderato. Il 2026 si ferma a ottobre.</p>
+        <div id="heat" data-source="mensile"></div>
+      </div>
+      <div class="card">
+        <h2>Consuntivo diviso budget, per trimestre</h2>
+        <p class="note">L’asterisco indica un trimestre parziale: il quarto del 2026 ha solo ottobre.</p>
+        <div id="heat-trim" data-source="trimestri"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Canoni e variabile -->
+  <section class="tab" id="t-tipo">
+    <div class="grid">
+      <div class="card">
+        <h2>Canoni: budget contro consuntivo</h2>
+        <p class="note">I canoni sono ricavi ricorrenti: l’errore qui dice quanto il budget sottostima la parte sicura. Clicca su un anno per vedere i progetti.</p>
+        <div class="chart" id="ch-canoni" data-source="gruppi"></div>
+      </div>
+      <div class="card">
+        <h2>Componente variabile: budget contro consuntivo</h2>
+        <p class="note">Consumo, corpo e altro: la parte che dipende da nuovi lavori. Clicca su un anno per vedere i progetti.</p>
+        <div class="chart" id="ch-var" data-source="gruppi"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Peso dei canoni sul totale</h2>
+      <p class="note">Quota di canoni sui ricavi, a budget e a consuntivo. Il 2027 è solo budget; il 2026 è fino a ottobre.</p>
+      <div id="ch-share" data-source="gruppi"></div>
+    </div>
+    <div class="card" id="card-drill">
+      <h2>Su quali progetti il budget si è scostato</h2>
+      <p class="note">Differenza tra consuntivo e budget ponderato per progetto: barre verdi sopra il budget, rosse sotto. Il grafico mostra i dodici progetti con la differenza maggiore.</p>
+      <div class="ctrl">
+        <label for="sel-d-anno">Anno</label><select class="dash-select" id="sel-d-anno"></select>
+        <label for="sel-d-gruppo">Tipo</label><select class="dash-select" id="sel-d-gruppo"></select>
+        <span>Totale: <span class="drill-sum" data-source="gruppi" data-field="consuntivo" data-where="anno=2026&amp;gruppo=Canone">—</span> contro <span class="drill-sum" data-source="gruppi" data-field="budget" data-where="anno=2026&amp;gruppo=Canone">—</span> di budget, scostamento <b class="drill-sum" data-source="gruppi" data-field="scostamento" data-where="anno=2026&amp;gruppo=Canone">—</b></span>
+      </div>
+      <div id="ch-drill" data-source="prog_gruppo"></div>
+      <div class="scroll"><table id="tb-drill" data-source="prog_gruppo" data-row-key="anno,gruppo,progetto">
+        <thead><tr><th data-field="progetto">Progetto</th><th data-field="budget_pesato">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="differenza">Differenza</th><th data-field="scostamento">Scostamento</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- Contratti non a budget -->
+  <section class="tab" id="t-nuovi">
+    <div class="card">
+      <h2>Ricavi da contratti senza budget</h2>
+      <p class="note">Contratti con ricavi a consuntivo e nessuna riga di budget con lo stesso nome nell’anno. Può includere contratti rinominati.</p>
+      <div class="chart" id="ch-nuovi" data-source="annuale"></div>
+    </div>
+    <div class="card">
+      <h2>Contratti più grandi senza budget</h2>
+      <div class="ctrl"><label for="sel-nuovi">Anno</label><select class="dash-select" id="sel-nuovi"></select></div>
+      <div class="scroll"><table id="tb-nuovi" data-source="nuovi" data-row-key="anno,contratto">
+        <thead><tr><th data-field="contratto">Contratto</th><th data-field="progetto">Progetto</th><th data-field="consuntivo">Consuntivo</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>Budget e consuntivo per progetto</h2>
+      <p class="note">Ricavi per progetto nell’anno scelto. Per il 2026 il consuntivo arriva solo a ottobre, il budget è annuo.</p>
+      <div class="ctrl"><label for="sel-prog">Anno</label><select class="dash-select" id="sel-prog"></select></div>
+      <div class="scroll"><table id="tb-prog" data-source="progetti" data-row-key="anno,progetto">
+        <thead><tr><th data-field="progetto">Progetto</th><th data-field="budget_pesato">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="consuntivo_non_a_budget">Di cui non a budget</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- Costi -->
+  <section class="tab" id="t-costi">
+    <div class="card">
+      <h2>Costi per categoria: budget contro consuntivo</h2>
+      <p class="note">Valori assoluti. Il personale è nel budget come riga centrale e nel consuntivo per progetto: confronto solo in totale. Per il 2026 il budget dei costi è incompleto e il consuntivo non ha il personale, quindi lo scostamento non è calcolato. Sui costi, uno scostamento positivo (rosso) è sfavorevole.</p>
+      <div class="scroll"><table id="tb-costi" data-source="costi" data-row-key="chiave">
+        <thead><tr><th data-field="chiave">Anno e categoria</th><th data-field="budget">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="scostamento">Scostamento</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- 2027 -->
+  <section class="tab" id="t-y27">
+    <div class="card">
+      <h2>Budget 2027 per mese, canoni e variabile</h2>
+      <p class="note">I canoni sono piatti tutto l’anno; la linea è lo stesso totale 2027 distribuito con il peso medio storico del consuntivo (2023-2025).</p>
+      <div class="chart" id="ch-27" data-source="stagionalita"></div>
+    </div>
+    <div class="card">
+      <h2>Budget 2027 contro stagionalità storica</h2>
+      <p class="note">Differenza = budget 2027 del mese meno il totale 2027 distribuito con il peso storico del consuntivo. Positiva: il budget chiede più del solito a quel mese.</p>
+      <div class="scroll"><table id="tb-27" data-source="stagionalita" data-row-key="mese">
+        <thead><tr><th data-field="mese">Mese</th><th data-field="budget_2027">Budget 2027</th><th data-field="peso_2027">Peso 2027</th><th data-field="peso_consuntivo_medio">Peso storico consuntivo</th><th data-field="rapporto_medio">Storico consuntivo / budget</th><th data-field="a_stagionalita_storica">2027 a stagionalità storica</th><th data-field="delta">Differenza</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- Fasi di progetto -->
+  <section class="tab" id="t-fasi">
+    <div class="kpis">
+      <div class="card kpi hero"><div class="lab">Budget 2027 di partenza</div><div class="big" data-source="fasi_tot" data-field="budget" data-row="0">—</div><div class="det">canoni e variabile, mensilizzazione attuale</div></div>
+      <div class="card kpi hero"><div class="lab">Con i coefficienti misurati</div><div class="big" data-source="fasi_tot" data-field="delta_mis" data-row="0">—</div><div class="det"><span data-source="fasi_tot" data-field="calibrato_mis" data-row="0">—</span> in totale</div></div>
+      <div class="card kpi hero"><div class="lab">Solo fase di chiusura (prudenziale)</div><div class="big" data-source="fasi_tot" data-field="delta_prud" data-row="0">—</div><div class="det"><span data-source="fasi_tot" data-field="calibrato_prud" data-row="0">—</span> in totale</div></div>
+      <div class="card kpi hero"><div class="lab">Budget 2027 fuori dalla fase in corsa</div><div class="big" data-source="fasi_tot" data-field="quota_fasi" data-row="0">—</div><div class="det">il resto è in corsa e non cambia</div></div>
+    </div>
+    <div class="card">
+      <h2>Quanto rende un contratto nelle sue fasi</h2>
+      <p class="note">Coefficiente = ricavo del mese diviso la media mensile dello stesso contratto: 1,00 vuol dire in linea con la propria media. Start-up sono i primi 3 mesi dalla data inizio, in chiusura gli ultimi 3 prima della data fine, in corsa tutto il resto. Il segmento è l’intervallo di confidenza al 90%: se contiene 1,00 la fase non si distingue dalla media.</p>
+      <div id="ch-fasi-coef" data-source="fasi_coef"></div>
+    </div>
+    <div class="card">
+      <h2>Come usarli nel budget</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>Fase</th><th>Canoni</th><th>Variabile</th><th style="text-align:left">Come applicarla</th></tr></thead>
+        <tbody>
+          <tr><td>Start-up (primi 3 mesi)</td><td data-source="fasi_coef" data-field="coefficiente" data-where="gruppo=Canone&amp;soglia_mesi=3&amp;fase=Start-up">—</td><td data-source="fasi_coef" data-field="coefficiente" data-where="gruppo=Variabile&amp;soglia_mesi=3&amp;fase=Start-up">—</td><td style="text-align:left;white-space:normal">Canoni: nessuna correzione, salvo il primo mese se parziale. Variabile: il dato dice sopra la media, ma la stima è fragile e il segno è opposto all’intuizione; non alzare il budget, usarlo solo come sensibilità.</td></tr>
+          <tr><td>In corsa</td><td data-source="fasi_coef" data-field="coefficiente" data-where="gruppo=Canone&amp;soglia_mesi=3&amp;fase=In%20corsa">—</td><td data-source="fasi_coef" data-field="coefficiente" data-where="gruppo=Variabile&amp;soglia_mesi=3&amp;fase=In%20corsa">—</td><td style="text-align:left;white-space:normal">Mensilizzazione piatta, nessuna correzione.</td></tr>
+          <tr><td>In chiusura (ultimi 3 mesi)</td><td data-source="fasi_coef" data-field="coefficiente" data-where="gruppo=Canone&amp;soglia_mesi=3&amp;fase=In%20chiusura">—</td><td data-source="fasi_coef" data-field="coefficiente" data-where="gruppo=Variabile&amp;soglia_mesi=3&amp;fase=In%20chiusura">—</td><td style="text-align:left;white-space:normal">Variabile: ridurre gli ultimi 3 mesi del contratto di circa un quarto. Canoni: l’ultimo mese è spesso parziale; il canone resta pieno se il contratto è rinnovato.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>Fasi nel budget 2027, riga per riga</h2>
+      <p class="note">Ogni cella è il budget del mese in k€, colorata con la fase. La fase è dedotta dalla mensilizzazione: una riga che parte dopo gennaio ha un start-up, una che finisce prima di dicembre ha una chiusura, le righe che coprono tutto l’anno sono in corsa. Le date reali dei contratti 2027 vanno confermate.</p>
+      <div id="fasi-map" data-source="fasi27" style="overflow-x:auto"></div>
+    </div>
+    <div class="card">
+      <h2>Effetto sul budget 2027 per riga</h2>
+      <p class="note">Misurato: start-up e chiusura con i coefficienti stimati. Prudenziale: solo la chiusura. Il totale di ogni riga cambia perché i coefficienti sono relativi alla media del contratto: le righe che coprono tutto l’anno non cambiano.</p>
+      <div class="scroll"><table id="tb-fasi-riga" data-source="fasi_riga" data-row-key="riga">
+        <thead><tr><th data-field="riga">Riga</th><th data-field="budget">Budget</th><th data-field="mesi_start">Mesi start-up</th><th data-field="mesi_conc">Mesi in chiusura</th><th data-field="calibrato_mis">Calibrato misurato</th><th data-field="delta_mis">Differenza</th><th data-field="calibrato_prud">Calibrato prudenziale</th><th data-field="delta_prud">Differenza</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>Tutti i coefficienti</h2>
+      <p class="note">Contratti con almeno 4 mesi di ricavi nella finestra tra data inizio e data fine, da gennaio 2023 a ottobre 2026. Soglia in mesi: ampiezza di start-up e chiusura.</p>
+      <div class="scroll"><table id="tb-fasi-coef" data-source="fasi_coef" data-row-key="gruppo,soglia_mesi,fase">
+        <thead><tr><th data-field="gruppo">Tipo</th><th data-field="soglia_mesi">Soglia (mesi)</th><th data-field="fase">Fase</th><th data-field="coefficiente">Coefficiente</th><th data-field="ci_basso">Intervallo da</th><th data-field="ci_alto">a</th><th data-field="osservazioni">Mesi osservati</th><th data-field="contratti">Contratti</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- Documentale 2026 -->
+  <section class="tab" id="t-doc">
+    <div class="kpis">
+      <div class="card kpi hero">
+        <div class="lab">Ricavi 2026 contro budget</div>
+        <div class="big" data-source="doc26_anno" data-field="ricavi_su_budget" data-row="0">—</div>
+        <div class="det"><span data-source="doc26_anno" data-field="ricavi" data-row="0">—</span> contro <span data-source="doc26_anno" data-field="ricavi_budget" data-row="0">—</span> di budget</div>
+        <div class="prog"><i id="pb-ric"></i></div>
+      </div>
+      <div class="card kpi hero">
+        <div class="lab">Costi 2026</div>
+        <div class="big" data-source="doc26_anno" data-field="costi" data-row="0">—</div>
+        <div class="det">personale <span data-source="doc26_anno" data-field="personale" data-row="0">—</span>, esterni <span data-source="doc26_anno" data-field="esterni" data-row="0">—</span></div>
+        <div class="prog"><i id="pb-cos-p" style="background:var(--color-fg)"></i><i id="pb-cos-e" style="background:var(--color-fg-muted)"></i></div>
+      </div>
+      <div class="card kpi hero">
+        <div class="lab">Margine 2026</div>
+        <div class="big" data-source="doc26_anno" data-field="margine_pct" data-row="0">—</div>
+        <div class="det"><span data-source="doc26_anno" data-field="margine" data-row="0">—</span> sui ricavi</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ricavi, budget e costi per mese</h2>
+      <p class="note">Ricavi da consuntivo (Competenza della Overview) fino a ottobre, da forecast a novembre e dicembre. Perimetro: tutto tranne Socio-sanitario, SUAPE e DocVault; Documit 2.0 non ha budget.</p>
+      <div class="chart" id="ch-doc" data-source="doc26_mesi"></div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h2>Margine per mese</h2>
+        <p class="note">Ricavi meno costi. Le barre di novembre e dicembre usano il forecast.</p>
+        <div class="chart" id="ch-margine" data-source="doc26_mesi"></div>
+      </div>
+      <div class="card">
+        <h2>Composizione dei costi</h2>
+        <p class="note">Personale da consuntivo, con novembre e dicembre pari alla media; esterni da consuntivo e forecast.</p>
+        <div class="chart" id="ch-costi-doc" data-source="doc26_mesi"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Dettaglio mensile</h2>
+      <div class="scroll"><table id="tb-doc" data-source="doc26_mesi" data-row-key="mese">
+        <thead><tr><th data-field="mese">Mese</th><th data-field="ricavi_budget">Budget ricavi</th><th data-field="ricavi">Ricavi</th><th data-field="scostamento">Scostamento</th><th data-field="fonte">Fonte</th><th data-field="costi">Costi</th><th data-field="margine">Margine</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <details>
+    <summary>Definizioni e limiti</summary>
+    <dl>
+      <dt>Budget ponderato</dt><dd>Importo di budget moltiplicato per la confidenza della riga; il budget lordo è senza ponderazione.</dd>
+      <dt>Consuntivo</dt><dd>Ricavi e costi del foglio Consuntivo. Il 2026 comprende solo gennaio-ottobre.</dd>
+      <dt>Canone e variabile</dt><dd>Canone è il tipo di servizio a canone; il variabile somma consumo, corpo e voci non classificate. Nel budget 2023 il tipo è dedotto da macroattività e linea di servizio. Il progetto DocuMIT 2.0 nel consuntivo 2026 è tutto canone (correzione di un’imputazione errata nel file di origine).</dd>
+      <dt>Contratti non a budget</dt><dd>Confronto sul nome del contratto: un contratto rinominato tra budget e consuntivo risulta non a budget.</dd>
+      <dt>Esclusi</dt><dd>Le righe del foglio Budget 2026 datate 2025 e 2027 non sono nel budget 2026. Il budget 2026 non ha personale.</dd>
+    </dl>
+  </details>
+</div>
