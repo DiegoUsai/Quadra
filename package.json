@@ -11,7 +11,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "seed": "tsx scripts/seed.ts",
-    "seed:check": "tsx scripts/seed-check.ts"
+    "seed:check": "tsx scripts/seed-check.ts",
+    "prepare": "git config core.hooksPath .githooks || exit 0"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
