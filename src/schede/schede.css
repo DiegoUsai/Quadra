@@ -44,3 +44,6 @@
 .bd .xbtn { font: inherit; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); background: none; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: .15rem .6rem; cursor: pointer; }
 .bd .xbtn:hover { color: var(--color-fg); }
 [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+.bd :is(button, select, [tabindex]):focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.bd svg rect[tabindex]:focus-visible { fill: var(--color-fg); fill-opacity: .08; outline-offset: -2px; }
+.bd .heat td[tabindex]:focus-visible { outline-offset: 1px; }

@@ -30,7 +30,7 @@
       <h2>Scostamenti per anno</h2>
       <p class="note">Scostamento = consuntivo diviso budget meno uno. Mesi in linea = mesi con consuntivo almeno pari al budget ponderato. Quota nuovi = ricavi di contratti senza una riga di budget omonima nell’anno.</p>
       <div class="scroll"><table id="tb-annuale" data-source="annuale" data-row-key="anno">
-        <thead><tr><th data-field="anno">Anno</th><th data-field="budget_lordo">Budget lordo</th><th data-field="budget_pesato">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="scost_pesato">Scost. ponderato</th><th data-field="scost_lordo">Scost. lordo</th><th data-field="mesi_ok">Mesi in linea</th><th data-field="quota_nuovi">Quota nuovi</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="anno">Anno</th><th scope="col" data-field="budget_lordo">Budget lordo</th><th scope="col" data-field="budget_pesato">Budget ponderato</th><th scope="col" data-field="consuntivo">Consuntivo</th><th scope="col" data-field="scost_pesato">Scost. ponderato</th><th scope="col" data-field="scost_lordo">Scost. lordo</th><th scope="col" data-field="mesi_ok">Mesi in linea</th><th scope="col" data-field="quota_nuovi">Quota nuovi</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -84,7 +84,7 @@
       </div>
       <div id="ch-drill" data-source="prog_gruppo"></div>
       <div class="scroll"><table id="tb-drill" data-source="prog_gruppo" data-row-key="anno,gruppo,progetto">
-        <thead><tr><th data-field="progetto">Progetto</th><th data-field="budget_pesato">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="differenza">Differenza</th><th data-field="scostamento">Scostamento</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="progetto">Progetto</th><th scope="col" data-field="budget_pesato">Budget ponderato</th><th scope="col" data-field="consuntivo">Consuntivo</th><th scope="col" data-field="differenza">Differenza</th><th scope="col" data-field="scostamento">Scostamento</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -99,14 +99,14 @@
       <h2>Contratti più grandi senza budget</h2>
       <div class="ctrl"><label for="sel-nuovi">Anno</label><select class="dash-select" id="sel-nuovi"></select></div>
       <div class="scroll"><table id="tb-nuovi" data-source="nuovi" data-row-key="anno,contratto">
-        <thead><tr><th data-field="contratto">Contratto</th><th data-field="progetto">Progetto</th><th data-field="consuntivo">Consuntivo</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="contratto">Contratto</th><th scope="col" data-field="progetto">Progetto</th><th scope="col" data-field="consuntivo">Consuntivo</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card">
       <h2>Budget e consuntivo per progetto</h2>
       <p class="note">Ricavi per progetto nell’anno scelto. Per il 2026 il consuntivo arriva solo a ottobre, il budget è annuo.</p>
       <div class="ctrl"><label for="sel-prog">Anno</label><select class="dash-select" id="sel-prog"></select></div>
       <div class="scroll"><table id="tb-prog" data-source="progetti" data-row-key="anno,progetto">
-        <thead><tr><th data-field="progetto">Progetto</th><th data-field="budget_pesato">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="consuntivo_non_a_budget">Di cui non a budget</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="progetto">Progetto</th><th scope="col" data-field="budget_pesato">Budget ponderato</th><th scope="col" data-field="consuntivo">Consuntivo</th><th scope="col" data-field="consuntivo_non_a_budget">Di cui non a budget</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -116,7 +116,7 @@
       <h2>Costi per categoria: budget contro consuntivo</h2>
       <p class="note">Valori assoluti. Il personale è nel budget come riga centrale e nel consuntivo per progetto: confronto solo in totale. Per il 2026 il budget dei costi è incompleto e il consuntivo non ha il personale, quindi lo scostamento non è calcolato. Sui costi, uno scostamento positivo (rosso) è sfavorevole.</p>
       <div class="scroll"><table id="tb-costi" data-source="costi" data-row-key="chiave">
-        <thead><tr><th data-field="chiave">Anno e categoria</th><th data-field="budget">Budget ponderato</th><th data-field="consuntivo">Consuntivo</th><th data-field="scostamento">Scostamento</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="chiave">Anno e categoria</th><th scope="col" data-field="budget">Budget ponderato</th><th scope="col" data-field="consuntivo">Consuntivo</th><th scope="col" data-field="scostamento">Scostamento</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -131,7 +131,7 @@
       <h2>Budget 2027 contro stagionalità storica</h2>
       <p class="note">Differenza = budget 2027 del mese meno il totale 2027 distribuito con il peso storico del consuntivo. Positiva: il budget chiede più del solito a quel mese.</p>
       <div class="scroll"><table id="tb-27" data-source="stagionalita" data-row-key="mese">
-        <thead><tr><th data-field="mese">Mese</th><th data-field="budget_2027">Budget 2027</th><th data-field="peso_2027">Peso 2027</th><th data-field="peso_consuntivo_medio">Peso storico consuntivo</th><th data-field="rapporto_medio">Storico consuntivo / budget</th><th data-field="a_stagionalita_storica">2027 a stagionalità storica</th><th data-field="delta">Differenza</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="mese">Mese</th><th scope="col" data-field="budget_2027">Budget 2027</th><th scope="col" data-field="peso_2027">Peso 2027</th><th scope="col" data-field="peso_consuntivo_medio">Peso storico consuntivo</th><th scope="col" data-field="rapporto_medio">Storico consuntivo / budget</th><th scope="col" data-field="a_stagionalita_storica">2027 a stagionalità storica</th><th scope="col" data-field="delta">Differenza</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -168,13 +168,13 @@
       <h2>Effetto sul budget 2027 per riga</h2>
       <p class="note">Misurato: start-up e chiusura con i coefficienti stimati. Prudenziale: solo la chiusura. Il totale di ogni riga cambia perché i coefficienti sono relativi alla media del contratto: le righe che coprono tutto l’anno non cambiano.</p>
       <div class="scroll"><table id="tb-fasi-riga" data-source="fasi_riga" data-row-key="riga">
-        <thead><tr><th data-field="riga">Riga</th><th data-field="budget">Budget</th><th data-field="mesi_start">Mesi start-up</th><th data-field="mesi_conc">Mesi in chiusura</th><th data-field="calibrato_mis">Calibrato misurato</th><th data-field="delta_mis">Differenza</th><th data-field="calibrato_prud">Calibrato prudenziale</th><th data-field="delta_prud">Differenza</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="riga">Riga</th><th scope="col" data-field="budget">Budget</th><th scope="col" data-field="mesi_start">Mesi start-up</th><th scope="col" data-field="mesi_conc">Mesi in chiusura</th><th scope="col" data-field="calibrato_mis">Calibrato misurato</th><th scope="col" data-field="delta_mis">Differenza</th><th scope="col" data-field="calibrato_prud">Calibrato prudenziale</th><th scope="col" data-field="delta_prud">Differenza</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card">
       <h2>Tutti i coefficienti</h2>
       <p class="note">Contratti con almeno 4 mesi di ricavi nella finestra tra data inizio e data fine, da gennaio 2023 a ottobre 2026. Soglia in mesi: ampiezza di start-up e chiusura.</p>
       <div class="scroll"><table id="tb-fasi-coef" data-source="fasi_coef" data-row-key="gruppo,soglia_mesi,fase">
-        <thead><tr><th data-field="gruppo">Tipo</th><th data-field="soglia_mesi">Soglia (mesi)</th><th data-field="fase">Fase</th><th data-field="coefficiente">Coefficiente</th><th data-field="ci_basso">Intervallo da</th><th data-field="ci_alto">a</th><th data-field="osservazioni">Mesi osservati</th><th data-field="contratti">Contratti</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="gruppo">Tipo</th><th scope="col" data-field="soglia_mesi">Soglia (mesi)</th><th scope="col" data-field="fase">Fase</th><th scope="col" data-field="coefficiente">Coefficiente</th><th scope="col" data-field="ci_basso">Intervallo da</th><th scope="col" data-field="ci_alto">a</th><th scope="col" data-field="osservazioni">Mesi osservati</th><th scope="col" data-field="contratti">Contratti</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -219,7 +219,7 @@
     <div class="card">
       <h2>Dettaglio mensile</h2>
       <div class="scroll"><table id="tb-doc" data-source="doc26_mesi" data-row-key="mese">
-        <thead><tr><th data-field="mese">Mese</th><th data-field="ricavi_budget">Budget ricavi</th><th data-field="ricavi">Ricavi</th><th data-field="scostamento">Scostamento</th><th data-field="fonte">Fonte</th><th data-field="costi">Costi</th><th data-field="margine">Margine</th></tr></thead><tbody></tbody></table></div>
+        <thead><tr><th scope="col" data-field="mese">Mese</th><th scope="col" data-field="ricavi_budget">Budget ricavi</th><th scope="col" data-field="ricavi">Ricavi</th><th scope="col" data-field="scostamento">Scostamento</th><th scope="col" data-field="fonte">Fonte</th><th scope="col" data-field="costi">Costi</th><th scope="col" data-field="margine">Margine</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
