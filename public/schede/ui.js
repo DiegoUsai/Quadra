@@ -76,11 +76,21 @@
   // tab
   const tabs = [...root.querySelectorAll('#tabs button')];
   function showTab(id) {
-    tabs.forEach(b => b.setAttribute('aria-selected', b.dataset.tab === id ? 'true' : 'false'));
+    tabs.forEach(b => { const on = b.dataset.tab === id; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
     root.querySelectorAll('.tab').forEach(s => s.classList.toggle('on', s.id === id));
     window.dispatchEvent(new Event('resize'));
   }
-  tabs.forEach(b => b.addEventListener('click', () => { showTab(b.dataset.tab); dash.setLink(b.dataset.tab); }));
+  tabs.forEach((b, i) => {
+    b.id = 'tab-' + b.dataset.tab; b.setAttribute('aria-controls', b.dataset.tab);
+    const p = $(b.dataset.tab); p.setAttribute('role', 'tabpanel'); p.setAttribute('aria-labelledby', b.id);
+    b.addEventListener('click', () => { showTab(b.dataset.tab); dash.setLink(b.dataset.tab); });
+    b.addEventListener('keydown', ev => {
+      const k = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[ev.key];
+      if (k === undefined) return;
+      ev.preventDefault(); const n = tabs[(k + tabs.length) % tabs.length]; n.focus(); n.click();
+    });
+  });
+  tabs.forEach(b => { b.tabIndex = b.getAttribute('aria-selected') === 'true' ? 0 : -1; });
   const named = document.getElementById(location.hash.slice(1));
   if (named && named.classList.contains('tab')) showTab(named.id);
 
@@ -122,6 +132,21 @@
   }
   const row = (c, name, val) => '<div><span class="sw" style="background:' + c + '"></span>' + name + ': ' + val + '</div>';
   const head = t => '<div style="color:var(--cds-text-secondary)">' + t + '</div>';
+  // tastiera e tocco: stesso contenuto del tooltip al focus, etichetta per i lettori di schermo
+  const plain = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  function kbCell(node, tp, f) {
+    node.tabIndex = 0; node.setAttribute('aria-label', plain(f()));
+    const at = () => { const r = node.getBoundingClientRect(); return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }; };
+    node.addEventListener('mousemove', ev => tp.show(f(), ev));
+    node.addEventListener('mouseleave', tp.hide);
+    node.addEventListener('focus', () => tp.show(f(), at()));
+    node.addEventListener('blur', tp.hide);
+    node.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') tp.hide();
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); node.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+    });
+  }
+  const kb = (tp, f) => sel => sel.each(function () { kbCell(this, tp, f); });
 
   // legenda in alto, dentro la vista
   function legend(el, items) {
@@ -139,7 +164,7 @@
     el.textContent = '';
     if (leg) legend(el, leg);
     const w = Math.max(280, el.clientWidth || 600);
-    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', '0 0 ' + w + ' ' + h).attr('role', 'img');
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', '0 0 ' + w + ' ' + h).attr('role', 'group').attr('aria-label', ((el.closest('.card') || document).querySelector('h2') || {}).textContent || 'Grafico');
     return { svg, w, h };
   }
   function axisStyle(sel) {
@@ -174,8 +199,7 @@
       });
       svg.append('rect').attr('x', x0(c)).attr('y', m.t).attr('width', x0.bandwidth()).attr('height', h - m.b - m.t).attr('fill', 'transparent')
         .style('cursor', opt.onClick ? 'pointer' : null)
-        .on('mousemove', ev => tp.show(head(c) + series.map(s => row(s.color, s.name, fmtVal(s.vals[i]))).join('') + (opt.extra ? opt.extra(i) : ''), ev))
-        .on('mouseleave', tp.hide)
+        .call(kb(tp, () => (head(c) + series.map(s => row(s.color, s.name, fmtVal(s.vals[i]))).join('') + (opt.extra ? opt.extra(i) : ''))))        .on('mouseleave', tp.hide)
         .on('click', () => opt.onClick && opt.onClick(i));
     });
   }
@@ -198,8 +222,7 @@
     cats.forEach((c, i) => {
       const bw = (w - m.l - m.r) / cats.length;
       svg.append('rect').attr('x', x(c) - bw / 2).attr('y', m.t).attr('width', bw).attr('height', h - m.b - m.t).attr('fill', 'transparent')
-        .on('mousemove', ev => tp.show(head(c) + series.map(s => row(s.color, s.name, fmtVal(s.vals[i]))).join(''), ev))
-        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(c) + series.map(s => row(s.color, s.name, fmtVal(s.vals[i]))).join(''))))        .on('mouseleave', tp.hide);
     });
   }
 
@@ -230,8 +253,7 @@
     }
     cats.forEach((c, i) => {
       svg.append('rect').attr('x', x(c)).attr('y', m.t).attr('width', x.bandwidth()).attr('height', h - m.b - m.t).attr('fill', 'transparent')
-        .on('mousemove', ev => tp.show(head(c) + layers.map(l => row(l.color, l.name, eur(l.vals[i]))).join('') + '<div>Totale: ' + eur(tot[i]) + '</div>' + (lineSeries ? '<div>' + lineSeries.name + ': ' + eur(lineSeries.vals[i]) + '</div>' : ''), ev))
-        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(c) + layers.map(l => row(l.color, l.name, eur(l.vals[i]))).join('') + '<div>Totale: ' + eur(tot[i]) + '</div>' + (lineSeries ? '<div>' + lineSeries.name + ': ' + eur(lineSeries.vals[i]) + '</div>' : ''))))        .on('mouseleave', tp.hide);
     });
   }
 
@@ -245,7 +267,7 @@
     const tp = tipFor(host);
     const t = document.createElement('table'); t.className = 'heat';
     const hr = t.createTHead().insertRow();
-    [corner].concat(colLabels).forEach(l => { const th = document.createElement('th'); th.textContent = l; hr.appendChild(th); });
+    [corner].concat(colLabels).forEach(l => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = l; hr.appendChild(th); });
     const tb = t.createTBody();
     const ex = { head: [corner].concat(colLabels.map(String)), rows: [] };
     host.__export = ex;
@@ -257,8 +279,7 @@
         if (!c) { td.textContent = '—'; er.push(''); return; }
         td.textContent = c.label; er.push(xnum(c.v * 100));
         td.style.background = heatCol(c.v); td.style.color = '#1f1f1f';
-        td.addEventListener('mousemove', ev => tp.show(c.tip, ev));
-        td.addEventListener('mouseleave', tp.hide);
+        kbCell(td, tp, () => (c.tip));        td.addEventListener('mouseleave', tp.hide);
       });
     });
     host.appendChild(t);
@@ -287,8 +308,7 @@
       svg.append('text').attr('x', m.l + 6).attr('y', yy + bh / 2 + 4).attr('fill', txtOn(c[0])).style('font-size', 'var(--cds-font-size-caption)').text(pct(r.q, 0));
       svg.append('text').attr('x', w - m.r - 6).attr('y', yy + bh / 2 + 4).attr('text-anchor', 'end').attr('fill', txtOn(c[2])).style('font-size', 'var(--cds-font-size-caption)').text(pct(1 - r.q, 0));
       svg.append('rect').attr('x', 0).attr('y', yy).attr('width', w).attr('height', bh).attr('fill', 'transparent')
-        .on('mousemove', ev => tp.show(head(r.k) + row(c[0], 'Canoni', pct(r.q, 1) + ' (' + eur(r.vc) + ')') + row(c[2], 'Variabile', pct(1 - r.q, 1) + ' (' + eur(r.vv) + ')'), ev))
-        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(r.k) + row(c[0], 'Canoni', pct(r.q, 1) + ' (' + eur(r.vc) + ')') + row(c[2], 'Variabile', pct(1 - r.q, 1) + ' (' + eur(r.vv) + ')'))))        .on('mouseleave', tp.hide);
     });
   }
 
@@ -310,8 +330,7 @@
       svg.append('rect').attr('x', Math.min(x(0), x(d))).attr('y', yy).attr('width', Math.abs(x(d) - x(0))).attr('height', bh).attr('rx', 2).attr('fill', d >= 0 ? 'var(--color-ok)' : 'var(--color-bad)');
       svg.append('text').attr('x', d >= 0 ? x(d) + 4 : x(d) - 4).attr('y', yy + bh / 2 + 4).attr('text-anchor', d >= 0 ? 'start' : 'end').attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text(eurs(d));
       svg.append('rect').attr('x', 0).attr('y', yy).attr('width', w).attr('height', bh).attr('fill', 'transparent')
-        .on('mousemove', ev => tp.show(head(r.progetto) + row('var(--cds-chart-muted)', 'Budget', eur(r.budget_pesato)) + row('var(--color-fg)', 'Consuntivo', eur(r.consuntivo)) + '<div>Differenza: ' + eurs(d) + '</div>' + dl('Scostamento', r.scostamento), ev))
-        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(r.progetto) + row('var(--cds-chart-muted)', 'Budget', eur(r.budget_pesato)) + row('var(--color-fg)', 'Consuntivo', eur(r.consuntivo)) + '<div>Differenza: ' + eurs(d) + '</div>' + dl('Scostamento', r.scostamento))))        .on('mouseleave', tp.hide);
     });
   }
 
@@ -346,8 +365,7 @@
     if (fc.length) svg.append('text').attr('x', (x(cats[fc[0]]) + x(cats[fc[fc.length - 1]]) + x.bandwidth()) / 2).attr('y', m.t + 6).attr('text-anchor', 'middle').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text('forecast');
     D.forEach((r, i) => {
       svg.append('rect').attr('x', x(cats[i]) - x.step() * 0.14).attr('y', m.t).attr('width', x.step()).attr('height', h - m.b - m.t).attr('fill', 'transparent')
-        .on('mousemove', ev => tp.show(head(cats[i] + ' 2026 (' + r.fonte + ')') + row(c[0], 'Ricavi', eur(r.ricavi)) + row('var(--color-fg)', 'Budget ricavi', eur(r.ricavi_budget)) + dl('Scostamento ricavi', r.scostamento) + row(c[3], 'Costi', eur(r.costi)) + '<div>Margine: ' + eurs(r.margine) + '</div>', ev))
-        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(cats[i] + ' 2026 (' + r.fonte + ')') + row(c[0], 'Ricavi', eur(r.ricavi)) + row('var(--color-fg)', 'Budget ricavi', eur(r.ricavi_budget)) + dl('Scostamento ricavi', r.scostamento) + row(c[3], 'Costi', eur(r.costi)) + '<div>Margine: ' + eurs(r.margine) + '</div>')))        .on('mouseleave', tp.hide);
     });
   }
 
@@ -372,8 +390,7 @@
     pts.forEach(p => svg.append('circle').attr('cx', p[0]).attr('cy', p[1]).attr('r', 3).attr('fill', 'var(--color-fg)'));
     D.forEach((r, i) => {
       svg.append('rect').attr('x', x(cats[i]) - x.step() * 0.14).attr('y', m.t).attr('width', x.step()).attr('height', h - m.b - m.t).attr('fill', 'transparent')
-        .on('mousemove', ev => tp.show(head(cats[i] + ' 2026 (' + r.fonte + ')') + '<div>Margine del mese: ' + eurs(r.margine) + '</div><div>Margine cumulato: ' + eurs(r.margine_cum) + '</div>', ev))
-        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(cats[i] + ' 2026 (' + r.fonte + ')') + '<div>Margine del mese: ' + eurs(r.margine) + '</div><div>Margine cumulato: ' + eurs(r.margine_cum) + '</div>')))        .on('mouseleave', tp.hide);
     });
   }
 
@@ -539,8 +556,7 @@
       svg.append('circle').attr('cx', x(+d.coefficiente)).attr('cy', yy).attr('r', 5).attr('fill', r.col).attr('stroke', 'var(--color-panel)').attr('stroke-width', 1.5);
       svg.append('text').attr('x', x(+d.ci_alto) + 8).attr('y', yy + 4).attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text(dec2(d.coefficiente));
       svg.append('rect').attr('x', 0).attr('y', y(r.k)).attr('width', w).attr('height', y.bandwidth()).attr('fill', 'transparent')
-        .on('mousemove', ev => tp.show(head(r.k) + '<div>Coefficiente: <b>' + dec2(d.coefficiente) + '</b></div><div>Intervallo 90%: ' + dec2(d.ci_basso) + ' - ' + dec2(d.ci_alto) + '</div><div>' + d.osservazioni + ' mesi su ' + d.contratti + ' contratti</div>', ev))
-        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(r.k) + '<div>Coefficiente: <b>' + dec2(d.coefficiente) + '</b></div><div>Intervallo 90%: ' + dec2(d.ci_basso) + ' - ' + dec2(d.ci_alto) + '</div><div>' + d.osservazioni + ' mesi su ' + d.contratti + ' contratti</div>')))        .on('mouseleave', tp.hide);
     });
   }
 
@@ -552,7 +568,7 @@
     const tp = tipFor(host);
     const t = document.createElement('table'); t.className = 'heat';
     const hr = t.createTHead().insertRow();
-    ['Riga'].concat(MESI).forEach(l => { const th = document.createElement('th'); th.textContent = l; hr.appendChild(th); });
+    ['Riga'].concat(MESI).forEach(l => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = l; hr.appendChild(th); });
     const tb = t.createTBody();
     const ex = { head: ['Riga', 'Mese', 'Fase', 'Budget (€)', 'Coefficiente', 'Calibrato misurato (€)', 'Calibrato prudenziale (€)'], rows: [] };
     host.__export = ex;
@@ -563,8 +579,7 @@
         if (!r) { td.textContent = '—'; continue; }
         td.textContent = kfmt(r.budget); td.style.background = FCOL[r.fase] || '#f1ede4'; td.style.color = '#1f1f1f';
         ex.rows.push([n, MESI[mm - 1], r.fase, String(Math.round(r.budget)), xnum(r.coef), String(Math.round(r.calibrato_mis)), String(Math.round(r.calibrato_prud))]);
-        td.addEventListener('mousemove', ev => tp.show(head(n + ' · ' + MESI[mm - 1]) + row(FCOL[r.fase], 'Fase', r.fase) + '<div>Budget: ' + eur(r.budget) + '</div><div>Coefficiente: ' + dec2(r.coef) + '</div><div>Calibrato misurato: ' + eur(r.calibrato_mis) + '</div><div>Calibrato prudenziale: ' + eur(r.calibrato_prud) + '</div>', ev));
-        td.addEventListener('mouseleave', tp.hide);
+        kbCell(td, tp, () => (head(n + ' · ' + MESI[mm - 1]) + row(FCOL[r.fase], 'Fase', r.fase) + '<div>Budget: ' + eur(r.budget) + '</div><div>Coefficiente: ' + dec2(r.coef) + '</div><div>Calibrato misurato: ' + eur(r.calibrato_mis) + '</div><div>Calibrato prudenziale: ' + eur(r.calibrato_prud) + '</div>'));        td.addEventListener('mouseleave', tp.hide);
       }
     });
     host.appendChild(t);

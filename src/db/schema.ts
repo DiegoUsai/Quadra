@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, boolean, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, boolean, numeric, timestamp, jsonb, primaryKey } from "drizzle-orm/pg-core";
 
 // Importi in numeric(14,2): le specifiche (sezione 5) escludono i float.
 const euro = (name: string) => numeric(name, { precision: 14, scale: 2 });
@@ -88,4 +88,54 @@ export const contrattiNonABudget = pgTable("contratti_non_a_budget", {
   id: serial("id").primaryKey(),
   anno: integer("anno").notNull(), contratto: text("contratto").notNull(), progetto: text("progetto").notNull(),
   consuntivo: euro("consuntivo").notNull(),
+});
+
+// --- Fase 2: ingestione dello scadenzario (specifiche 5.1, 5.2, 6) ---
+export const snapshotScadenzario = pgTable("snapshot_scadenzario", {
+  id: serial("id").primaryKey(),
+  lettoIl: timestamp("letto_il", { withTimezone: true }).defaultNow().notNull(),
+  driveModifiedTime: timestamp("drive_modified_time", { withTimezone: true }).notNull(),
+  driveVersion: text("drive_version"),
+  hashContenuto: text("hash_contenuto").notNull(),
+  nRigheContratti: integer("n_righe_contratti").notNull(),
+  nRigheMovimenti: integer("n_righe_movimenti").notNull(),
+  nVariazioni: integer("n_variazioni").notNull().default(0),
+});
+
+// Stato corrente di ogni riga letta (una riga per foglio e chiave). ponytail: il contenuto completo di ogni
+// snapshot su Blob (specifiche 6.1, retention 24 mesi) arriva dopo; qui bastano stato corrente e variazioni.
+export const rigaCorrente = pgTable("riga_corrente", {
+  foglio: text("foglio").notNull(), chiave: text("chiave").notNull(),
+  hash: text("hash").notNull(), dati: jsonb("dati").notNull(), rigaFoglio: integer("riga_foglio"),
+  ultimoSnapshotId: integer("ultimo_snapshot_id").notNull(),
+}, (t) => [primaryKey({ columns: [t.foglio, t.chiave] })]);
+
+export const variazione = pgTable("variazione", {
+  id: serial("id").primaryKey(),
+  snapshotId: integer("snapshot_id").notNull(),
+  foglio: text("foglio").notNull(), chiave: text("chiave").notNull(),
+  tipo: text("tipo").notNull(), // nuova | modificata | eliminata
+  prima: jsonb("prima"), dopo: jsonb("dopo"),
+  campi: jsonb("campi"), // per le modifiche: elenco {campo, prima, dopo}
+  rigaFoglio: integer("riga_foglio"),
+});
+
+export const runControllo = pgTable("run_controllo", {
+  id: serial("id").primaryKey(),
+  avviatoIl: timestamp("avviato_il", { withTimezone: true }).defaultNow().notNull(),
+  terminatoIl: timestamp("terminato_il", { withTimezone: true }),
+  origine: text("origine").notNull(), // cron | apps_script | manuale
+  esito: text("esito").notNull().default("in_corso"), // nessuna_modifica | letto | struttura_cambiata | errore | in_corso
+  snapshotId: integer("snapshot_id"),
+  nVariazioni: integer("n_variazioni").default(0),
+  errore: text("errore"),
+});
+
+// Registro delle modifiche di cella inviato dall'Apps Script del foglio (specifiche 6.3)
+export const modificaCella = pgTable("modifica_cella", {
+  id: serial("id").primaryKey(),
+  ricevutaIl: timestamp("ricevuta_il", { withTimezone: true }).defaultNow().notNull(),
+  quando: timestamp("quando", { withTimezone: true }),
+  utente: text("utente"), foglio: text("foglio").notNull(), cella: text("cella").notNull(),
+  vecchioValore: text("vecchio_valore"), nuovoValore: text("nuovo_valore"), nCelle: integer("n_celle").notNull().default(1),
 });

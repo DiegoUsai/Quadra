@@ -7,4 +7,4 @@ export default auth((req) => {
   if (p.startsWith("/api/")) return new NextResponse("non autorizzato", { status: 401 });
   return NextResponse.redirect(new URL("/", req.url));
 });
-export const config = { matcher: ["/((?!api/auth|api/jobs|_next|favicon.ico).*)"] };
+export const config = { matcher: ["/((?!api/auth|api/jobs|api/hook|_next|favicon.ico).*)"] };
