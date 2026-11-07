@@ -1,6 +1,6 @@
 :root {
   --color-fg: #1f1f1f; --color-fg-muted: #6b6b66; --color-bg: #faf9f5; --color-panel: #ffffff;
-  --color-border-line: #e3e0d6; --color-ok: #2f8f6f; --color-warn: #b7791f; --color-bad: #c4513a;
+  --color-border-line: #e3e0d6; --color-ok: #267a5d; --color-warn: #b7791f; --color-bad: #c4513a;
   --cds-border: #d6d2c4; --cds-surface-popover: #ffffff; --cds-shadow-popover: 0 4px 16px rgba(0,0,0,.12);
   --cds-radius: 8px; --cds-gap-sm: .5rem; --cds-gap-md: 1rem; --cds-pad-xs: .25rem; --cds-pad-sm: .5rem; --cds-pad-lg: 1rem;
   --cds-font-size-caption: .8125rem; --cds-font-size-body: .9375rem; --cds-font-size-heading: 1rem; --cds-font-size-title: 1.5rem;
