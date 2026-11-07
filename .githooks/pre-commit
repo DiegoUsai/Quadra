@@ -1,0 +1,16 @@
+#!/bin/sh
+# Blocca il commit di dati aziendali, specifiche e segreti (CLAUDE.md, "Sicurezza e riservatezza").
+# Vale anche contro `git add -f`: controlla i file effettivamente in staging.
+vietati='^(data|reference)/|^docs/specifiche/|(^|/)\.env($|\.)|\.(csv|tsv|xlsx|xls|xlsm|ods|pkl|parquet|sqlite|db|pem|key|p12|pfx)$|service-account|credentials|client_secret|mappatura-scadenzario|Quadra - (Specifiche|Stato)|PROMPT_FASE'
+consentiti='^tests/fixtures/|^\.env\.example$|^data/\.gitkeep$|^reference/\.gitkeep$|^docs/specifiche/\.gitkeep$'
+ko=0
+for f in $(git diff --cached --name-only --diff-filter=AM); do
+  if echo "$f" | grep -Eq "$vietati" && ! echo "$f" | grep -Eq "$consentiti"; then
+    echo "BLOCCATO: $f e' un file con dati, specifiche o credenziali"; ko=1
+  fi
+done
+# Segreti nel contenuto aggiunto (esclusa la riga del .gitignore che li nomina)
+if git diff --cached -U0 -- . ':!.gitignore' ':!.githooks' | grep -E '^\+' | grep -Eq 'BEGIN (RSA |EC )?PRIVATE KEY|"private_key"|postgres(ql)?://[^ ]*:[^ ]*@|GOCSPX-|xox[bap]-[0-9A-Za-z-]+|AIza[0-9A-Za-z_-]{30}'; then
+  echo "BLOCCATO: nel contenuto compare una chiave privata, una stringa di connessione o un token"; ko=1
+fi
+[ $ko -eq 0 ] || { echo "Commit annullato. Niente dati reali nel repository."; exit 1; }
