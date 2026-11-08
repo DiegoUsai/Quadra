@@ -6,12 +6,13 @@ export default async function Page() {
   return (
     <>
       <header className="topbar">
-        <span>{s?.user?.email ?? (authSaltata() ? "sviluppo locale, accesso disattivato" : "")}{s?.user?.ruolo ? ` · ${s.user.ruolo}` : ""}</span>
+        <span className="marchio">Quadra</span>
+        <div className="utente"><span>{s?.user?.email ?? (authSaltata() ? "sviluppo locale, accesso disattivato" : "")}{s?.user?.ruolo ? ` · ${s.user.ruolo}` : ""}</span>
         {s && (
           <form action={async () => { "use server"; await signOut({ redirectTo: "/" }); }}>
             <button type="submit" className="btn">Esci</button>
           </form>
-        )}
+        )}</div>
       </header>
       <Schede />
     </>
