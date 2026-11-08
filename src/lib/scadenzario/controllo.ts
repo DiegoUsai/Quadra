@@ -6,6 +6,7 @@ import { confronta, type Variazione } from "./diff";
 import { leggiFogli, metaFile } from "./google";
 import { leggiFoglio, type Riga } from "./righe";
 import type { Foglio } from "./intestazioni";
+import { aggiornaAnomalie } from "@/lib/regole/persistenza";
 
 const FOGLI: Foglio[] = ["Contratti Attivi", "Costi/Ricavi", "Lookup"];
 const a = <T,>(x: T[], n = 500) => Array.from({ length: Math.ceil(x.length / n) }, (_, i) => x.slice(i * n, (i + 1) * n));
@@ -13,6 +14,7 @@ const a = <T,>(x: T[], n = 500) => Array.from({ length: Math.ceil(x.length / n) 
 export type EsitoControllo = {
   esito: "nessuna_modifica" | "letto" | "struttura_cambiata" | "errore";
   runId: number; snapshotId?: number; baseline?: boolean; variazioni?: Record<string, Record<string, number>>; errore?: string;
+  anomalie?: { nuove: number; risolte: number; riaperte: number; prodotte: number };
 };
 
 // Una esecuzione del controllo (specifiche 6.1). Idempotente: se il file non è cambiato registra un run e termina.

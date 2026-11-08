@@ -15,7 +15,9 @@
     "seed:check": "tsx scripts/seed-check.ts",
     "prepare": "git config core.hooksPath .githooks || exit 0",
     "controllo": "tsx scripts/controllo.ts",
-    "reset:ingestione": "tsx scripts/reset-ingestione.ts"
+    "reset:ingestione": "tsx scripts/reset-ingestione.ts",
+    "regole": "tsx scripts/regole.ts",
+    "seed:regole": "tsx scripts/seed-regole.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
