@@ -1,7 +1,7 @@
 import { desc } from "drizzle-orm";
 import { getDb } from "@/db";
 import { modificaCella, runControllo, variazione } from "@/db/schema";
-import "@/schede/theme.css";
+import Barra from "../Barra";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,8 @@ export default async function Storico() {
   ]);
   const cella: React.CSSProperties = { padding: "4px 8px", borderBottom: "1px solid var(--color-border-line)", textAlign: "left", fontSize: 13 };
   return (
+    <>
+    <Barra corrente="/storico" />
     <main style={{ maxWidth: 1180, margin: "0 auto", padding: 16, fontFamily: "var(--font-anthropic-sans)", color: "var(--color-fg)" }}>
       <h1 style={{ fontWeight: 400 }}>Import e storico</h1>
       <h2>Ultimi controlli</h2>
@@ -47,5 +49,6 @@ export default async function Storico() {
       </table>
       {vars.length === 0 && <p style={{ color: "var(--color-fg-muted)" }}>Nessuna differenza registrata.</p>}
     </main>
+  </>
   );
 }

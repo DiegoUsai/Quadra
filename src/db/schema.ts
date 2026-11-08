@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, boolean, numeric, timestamp, jsonb, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, boolean, numeric, timestamp, jsonb, primaryKey, uniqueIndex, date } from "drizzle-orm/pg-core";
 
 // Importi in numeric(14,2): le specifiche (sezione 5) escludono i float.
 const euro = (name: string) => numeric(name, { precision: 14, scale: 2 });
@@ -138,4 +138,53 @@ export const modificaCella = pgTable("modifica_cella", {
   quando: timestamp("quando", { withTimezone: true }),
   utente: text("utente"), foglio: text("foglio").notNull(), cella: text("cella").notNull(),
   vecchioValore: text("vecchio_valore"), nuovoValore: text("nuovo_valore"), nCelle: integer("n_celle").notNull().default(1),
+});
+
+// --- Fase 3: regole di controllo come DATI (specifiche 5.2, 7). Le soglie non stanno nel codice. ---
+export const regola = pgTable("regola", {
+  codice: text("codice").primaryKey(), // es. A01
+  nome: text("nome").notNull(), descrizione: text("descrizione").notNull(), gruppo: text("gruppo").notNull(),
+  severita: text("severita").notNull(), // bloccante | alta | media | info
+  sogliaJson: jsonb("soglia_json").notNull().default({}),
+  attiva: boolean("attiva").notNull().default(true),
+  notifica: boolean("notifica").notNull().default(true), // false per le regole solo informative (es. A06)
+  versione: integer("versione").notNull().default(1),
+});
+
+// Anomalia già nota e accettata: non si riapre né si notifica finché è valida (specifiche 7.7)
+export const eccezione = pgTable("eccezione", {
+  id: serial("id").primaryKey(),
+  regola: text("regola").notNull(), entitaChiave: text("entita_chiave").notNull(),
+  periodoAnno: integer("periodo_anno"), periodoMese: integer("periodo_mese"),
+  motivo: text("motivo").notNull(), approvataDa: text("approvata_da").notNull(),
+  validaDal: date("valida_dal").notNull(), validaFino: date("valida_fino"),
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Correzioni applicate in lettura, mai sul foglio (specifiche 8): tetto_canone, riclassifica_gruppo, correggi_data...
+export const correzione = pgTable("correzione", {
+  id: serial("id").primaryKey(),
+  tipo: text("tipo").notNull(), entitaChiave: text("entita_chiave").notNull(), parametriJson: jsonb("parametri_json").notNull(),
+  motivo: text("motivo").notNull(), approvataDa: text("approvata_da").notNull(),
+  validaDal: date("valida_dal").notNull(), attiva: boolean("attiva").notNull().default(true),
+});
+
+export const anomalia = pgTable("anomalia", {
+  id: serial("id").primaryKey(),
+  fingerprint: text("fingerprint").notNull(), // regola + entità + periodo: deduplica
+  regola: text("regola").notNull(), entitaTipo: text("entita_tipo").notNull(), entitaChiave: text("entita_chiave").notNull(),
+  periodoAnno: integer("periodo_anno"), periodoMese: integer("periodo_mese"),
+  severita: text("severita").notNull(), messaggio: text("messaggio").notNull(), valoriJson: jsonb("valori_json"),
+  // aperta | in_carico | riconosciuta | risolta | riaperta
+  stato: text("stato").notNull().default("aperta"), assegnataA: text("assegnata_a"), notaRisoluzione: text("nota_risoluzione"),
+  primaVistaSnapshot: integer("prima_vista_snapshot").notNull(), ultimaVistaSnapshot: integer("ultima_vista_snapshot").notNull(),
+  rigaFoglio: integer("riga_foglio"), foglio: text("foglio"), pm: text("pm"),
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
+  risoltaIl: timestamp("risolta_il", { withTimezone: true }),
+}, (t) => [uniqueIndex("anomalia_fingerprint_uq").on(t.fingerprint)]);
+
+export const anomaliaStorico = pgTable("anomalia_storico", {
+  id: serial("id").primaryKey(), anomaliaId: integer("anomalia_id").notNull(),
+  quando: timestamp("quando", { withTimezone: true }).defaultNow().notNull(),
+  utente: text("utente"), da: text("da"), a: text("a").notNull(), nota: text("nota"),
 });
