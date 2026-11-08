@@ -28,7 +28,9 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
     if (!fileId) throw new Error("SCADENZARIO_SPREADSHEET_ID non impostata");
     const meta = await metaFile(fileId);
     const [ultimo] = await db.select().from(snapshotScadenzario).orderBy(desc(snapshotScadenzario.id)).limit(1);
-    if (ultimo && ultimo.driveModifiedTime.getTime() === new Date(meta.modifiedTime).getTime()) {
+    // Il modifiedTime di Drive può restare indietro di minuti rispetto a una modifica appena fatta: quando il controllo è
+    // chiesto da una modifica (Apps Script) o da un utente si rilegge sempre; il confronto per hash evita snapshot inutili.
+    if (origine === "cron" && ultimo && ultimo.driveModifiedTime.getTime() === new Date(meta.modifiedTime).getTime()) {
       await chiudi("nessuna_modifica", { snapshotId: ultimo.id });
       return { esito: "nessuna_modifica", runId: run.id, snapshotId: ultimo.id };
     }
