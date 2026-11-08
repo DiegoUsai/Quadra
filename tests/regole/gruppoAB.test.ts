@@ -140,3 +140,18 @@ describe("contratto spezzato in più ordini (stesso Id, stesso Contratto Padre)"
     expect(codici(c, "A10")).toEqual([]);
   });
 });
+
+import { soglieValide } from "@/lib/regole/soglie";
+describe("soglie modificabili dall'amministratore", () => {
+  it("accetta valori dello stesso tipo e completa quelli omessi", () => {
+    expect(soglieValide("B01", '{"tolleranza": 5}')).toEqual({ tolleranza: 5 });
+    expect(soglieValide("A04", '{"annoMin": 2000}')).toEqual({ annoMin: 2000, annoMax: 2040 });
+  });
+  it("rifiuta JSON non valido, chiavi sconosciute e tipi sbagliati", () => {
+    expect(() => soglieValide("B01", "{rotto")).toThrow(/JSON/);
+    expect(() => soglieValide("B01", '{"inventata": 1}')).toThrow(/sconosciuta/);
+    expect(() => soglieValide("B01", '{"tolleranza": "molta"}')).toThrow(/tipo/);
+    expect(() => soglieValide("A11", '{"ammesse": "Documentale"}')).toThrow(/tipo/);
+    expect(() => soglieValide("ZZ99", "{}")).toThrow(/sconosciuta/);
+  });
+});
