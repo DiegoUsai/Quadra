@@ -17,7 +17,9 @@
     "controllo": "tsx scripts/controllo.ts",
     "reset:ingestione": "tsx scripts/reset-ingestione.ts",
     "regole": "tsx scripts/regole.ts",
-    "seed:regole": "tsx scripts/seed-regole.ts"
+    "seed:regole": "tsx scripts/seed-regole.ts",
+    "notifiche:base": "tsx scripts/notifiche.ts base",
+    "notifiche:prova": "tsx scripts/notifiche.ts prova"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

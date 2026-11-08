@@ -1,10 +1,10 @@
-import { asc } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { auth, authSaltata } from "@/auth";
 import { getDb } from "@/db";
-import { correzione, eccezione, regola } from "@/db/schema";
+import { correzione, eccezione, mappaUtente, regola, rigaCorrente } from "@/db/schema";
 import { REGOLE } from "@/lib/regole/indice";
 import Barra from "../Barra";
-import { eliminaEccezione, salvaRegola } from "./azioni";
+import { eliminaEccezione, salvaMappaPm, salvaRegola } from "./azioni";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +20,13 @@ export default async function Regole() {
     return (<><Barra corrente="/regole" /><main style={{ maxWidth: 720, margin: "0 auto", padding: 16 }}><h1>Regole ed eccezioni</h1><p style={muto}>Questa pagina è riservata all&apos;amministratore.</p></main></>);
 
   const db = getDb();
-  const [righe, ecc, corr] = await Promise.all([
+  const [righe, ecc, corr, pmNomi, pmSlack] = await Promise.all([
     db.select().from(regola), db.select().from(eccezione).orderBy(asc(eccezione.regola), asc(eccezione.entitaChiave)), db.select().from(correzione).orderBy(asc(correzione.entitaChiave)),
+    db.selectDistinct({ pm: sql<string>`${rigaCorrente.dati}->>'pm'` }).from(rigaCorrente).where(sql`${rigaCorrente.foglio} = 'Contratti Attivi' and ${rigaCorrente.dati}->>'pm' is not null`),
+    db.select().from(mappaUtente),
   ]);
+  const slackDi = new Map(pmSlack.map((p) => [p.pmNome, p.slackUserId ?? ""]));
+  const pmLista = [...new Set(pmNomi.map((p) => p.pm).filter(Boolean))].sort();
   const dbPer = new Map(righe.map((r) => [r.codice, r]));
   const gruppi = [...new Set(REGOLE.map((r) => r.gruppo))];
 
@@ -90,6 +94,18 @@ export default async function Regole() {
               ))}</tbody>
             </table>
           </div>
+        </section>
+        <section style={{ marginTop: 24 }}>
+          <h2 style={{ fontSize: 16, marginBottom: 6 }}>PM e utenti Slack</h2>
+          <p style={{ ...muto, marginTop: 0 }}>Serve a menzionare il PM nelle notifiche. L&apos;ID si copia dal profilo Slack della persona (Copia ID membro) e ha la forma U0123ABCD. Senza ID il nome compare in chiaro.</p>
+          <table style={{ borderCollapse: "collapse" }}>
+            <thead><tr>{["PM (colonna PM dello scadenzario)", "ID utente Slack", ""].map((h, i) => <th key={i} scope="col" style={cella}>{h}</th>)}</tr></thead>
+            <tbody>{pmLista.map((pm) => (
+              <tr key={pm}><td style={cella}>{pm}</td>
+                <td style={cella}><input form={`pm-${pm}`} name="slack" defaultValue={slackDi.get(pm) ?? ""} placeholder="U0123ABCD" className="btn" aria-label={`ID Slack di ${pm}`} /></td>
+                <td style={cella}><form id={`pm-${pm}`} action={salvaMappaPm}><input type="hidden" name="pm" value={pm} /><button className="btn primary" type="submit">Salva</button></form></td></tr>
+            ))}</tbody>
+          </table>
         </section>
       </main>
     </>

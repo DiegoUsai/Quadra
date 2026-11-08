@@ -100,7 +100,7 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
   for (const stato of ["riaperta", "riconosciuta", "risolta"]) {
     const ids = cambi.filter((c) => c.stato === stato).map((c) => c.id);
     for (const g of pezzi(ids)) {
-      ops.push(db.update(anomalia).set({ stato, risoltaIl: stato === "risolta" ? new Date() : null }).where(inArray(anomalia.id, g)));
+      ops.push(db.update(anomalia).set({ stato, risoltaIl: stato === "risolta" ? new Date() : null, ...(stato === "riaperta" ? { notificataIl: null } : {}) }).where(inArray(anomalia.id, g)));
       ops.push(db.insert(anomaliaStorico).values(g.map((id) => ({ anomaliaId: id, utente: "sistema", a: stato, nota: cambi.find((c) => c.id === id)?.nota ?? null }))));
     }
   }

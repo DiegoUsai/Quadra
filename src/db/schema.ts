@@ -181,10 +181,28 @@ export const anomalia = pgTable("anomalia", {
   rigaFoglio: integer("riga_foglio"), foglio: text("foglio"), pm: text("pm"),
   creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
   risoltaIl: timestamp("risolta_il", { withTimezone: true }),
+  notificataIl: timestamp("notificata_il", { withTimezone: true }), // ultima notifica Slack; azzerata quando l'anomalia si riapre
 }, (t) => [uniqueIndex("anomalia_fingerprint_uq").on(t.fingerprint)]);
 
 export const anomaliaStorico = pgTable("anomalia_storico", {
   id: serial("id").primaryKey(), anomaliaId: integer("anomalia_id").notNull(),
   quando: timestamp("quando", { withTimezone: true }).defaultNow().notNull(),
   utente: text("utente"), da: text("da"), a: text("a").notNull(), nota: text("nota"),
+});
+
+// --- Fase 4: notifiche (specifiche 5.3, 10) ---
+export const mappaUtente = pgTable("mappa_utente", {
+  pmNome: text("pm_nome").primaryKey(), // come compare nella colonna PM dello scadenzario
+  email: text("email"), slackUserId: text("slack_user_id"), // U0123ABC: serve per menzionare il PM
+  ruolo: text("ruolo").notNull().default("viewer"),
+});
+
+export const notifica = pgTable("notifica", {
+  id: serial("id").primaryKey(),
+  tipo: text("tipo").notNull(), // nuove | risoluzione | riepilogo | errore
+  canale: text("canale").notNull(), destinatario: text("destinatario"),
+  anomaliaId: integer("anomalia_id"), runId: integer("run_id"),
+  inviataIl: timestamp("inviata_il", { withTimezone: true }).defaultNow().notNull(),
+  esito: text("esito").notNull(), // ok | errore
+  threadTs: text("thread_ts"), payloadHash: text("payload_hash"), errore: text("errore"),
 });

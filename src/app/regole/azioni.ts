@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth, authSaltata } from "@/auth";
 import { getDb } from "@/db";
-import { auditLog, eccezione, regola, snapshotScadenzario } from "@/db/schema";
+import { auditLog, eccezione, mappaUtente, regola, snapshotScadenzario } from "@/db/schema";
 import { soglieValide } from "@/lib/regole/soglie";
 import { aggiornaAnomalie } from "@/lib/regole/persistenza";
 
@@ -55,4 +55,16 @@ export async function eliminaEccezione(formData: FormData) {
   ]);
   await ricalcola();
   revalidatePath("/regole"); revalidatePath("/anomalie");
+}
+
+// Collega il nome del PM (colonna PM dello scadenzario) all'utente Slack, per menzionarlo nelle notifiche (specifiche 10.3).
+export async function salvaMappaPm(formData: FormData) {
+  const chi = await admin(), db = getDb();
+  const pm = String(formData.get("pm") ?? "").trim(), id = String(formData.get("slack") ?? "").trim();
+  if (!pm) throw new Error("PM mancante");
+  if (id && !/^[UW][A-Z0-9]{6,}$/.test(id)) throw new Error("L'ID utente Slack ha la forma U0123ABCD (profilo utente, Copia ID membro)");
+  if (!id) await db.delete(mappaUtente).where(eq(mappaUtente.pmNome, pm));
+  else await db.insert(mappaUtente).values({ pmNome: pm, slackUserId: id }).onConflictDoUpdate({ target: mappaUtente.pmNome, set: { slackUserId: id } });
+  await db.insert(auditLog).values({ utente: chi, azione: "mappa_pm.salva", entita: `pm:${pm}`, primaJson: null, dopoJson: { slack: id || null } });
+  revalidatePath("/regole");
 }

@@ -7,6 +7,7 @@ import { leggiFogli, metaFile } from "./google";
 import { leggiFoglio, type Riga } from "./righe";
 import type { Foglio } from "./intestazioni";
 import { aggiornaAnomalie } from "@/lib/regole/persistenza";
+import { inviaNuove, inviaRisoluzioni, notificaErrore } from "@/lib/notifier/notifiche";
 
 const FOGLI: Foglio[] = ["Contratti Attivi", "Costi/Ricavi", "Lookup"];
 const a = <T,>(x: T[], n = 500) => Array.from({ length: Math.ceil(x.length / n) }, (_, i) => x.slice(i * n, (i + 1) * n));
@@ -44,6 +45,7 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
     if (rotte.length) {
       const msg = rotte.map((l) => `${l.foglio}: mancanti [${l.mappa.mancanti.join(", ")}] duplicate [${l.mappa.duplicate.join(", ")}]`).join("; ");
       await chiudi("struttura_cambiata", { errore: "S01 " + msg });
+      await notificaErrore("S01: la struttura dello scadenzario è cambiata", msg).catch(() => undefined);
       return { esito: "struttura_cambiata", runId: run.id, errore: msg };
     }
 
@@ -89,11 +91,21 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
         .onConflictDoUpdate({ target: [rigaCorrente.foglio, rigaCorrente.chiave], set: { hash: sql`excluded.hash`, dati: sql`excluded.dati`, rigaFoglio: sql`excluded.riga_foglio`, ultimoSnapshotId: snap.id } }));
     await db.batch(ops as [typeof ops[0], ...typeof ops]);
 
-    await chiudi("letto", { snapshotId: snap.id, nVariazioni: nVar });
-    return { esito: "letto", runId: run.id, snapshotId: snap.id, baseline, variazioni: riepilogo };
+    // Le regole girano sullo stato appena scritto; poi si inviano le notifiche. Un loro errore non annulla la lettura:
+    // si registra nel run e, se serve, si segnala al canale tecnico.
+    let anomalie: Awaited<ReturnType<typeof aggiornaAnomalie>> | undefined, erroreDopo: string | undefined;
+    try {
+      anomalie = await aggiornaAnomalie(snap.id, new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }));
+      await inviaNuove(run.id);
+      await inviaRisoluzioni(run.id);
+    } catch (e) { erroreDopo = "dopo la lettura: " + (e instanceof Error ? e.message : String(e)); }
+    await chiudi("letto", { snapshotId: snap.id, nVariazioni: nVar, errore: erroreDopo ?? null });
+    if (erroreDopo) await notificaErrore("Controllo dello scadenzario: errore dopo la lettura", erroreDopo).catch(() => undefined);
+    return { esito: "letto", runId: run.id, snapshotId: snap.id, baseline, variazioni: riepilogo, anomalie, errore: erroreDopo };
   } catch (e) {
     const errore = e instanceof Error ? e.message : String(e);
     await chiudi("errore", { errore });
+    await notificaErrore("Controllo dello scadenzario non eseguito", errore).catch(() => undefined);
     return { esito: "errore", runId: run.id, errore };
   }
 }
