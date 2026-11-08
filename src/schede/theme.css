@@ -4,6 +4,7 @@
   --cds-border: #d6d2c4; --cds-surface-popover: #ffffff; --cds-shadow-popover: 0 4px 16px rgba(0,0,0,.12);
   --cds-radius: 8px; --cds-gap-sm: .5rem; --cds-gap-md: 1rem; --cds-pad-xs: .25rem; --cds-pad-sm: .5rem; --cds-pad-lg: 1rem;
   --cds-font-size-caption: .8125rem; --cds-font-size-body: .9375rem; --cds-font-size-heading: 1rem; --cds-font-size-title: 1.5rem;
+  --scala-bassa: #e6836b; --scala-neutra: #f1ede4; --scala-alta: #6dbba4;
   --cds-font-weight-medium: 500; --cds-dur-slow: .3s;
   --cds-chart-axis: #8a877d; --cds-chart-grid: #ebe8de; --cds-chart-muted: #b9b5a8; --cds-text-secondary: #6b6b66;
   --font-anthropic-sans: system-ui, -apple-system, "Segoe UI", sans-serif; --font-anthropic-serif: Georgia, "Times New Roman", serif;

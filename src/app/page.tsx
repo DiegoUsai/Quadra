@@ -5,10 +5,11 @@ export default async function Home() {
   const s = await auth();
   if (s || authSaltata()) redirect("/schede");
   return (
-    <main style={{ maxWidth: 360, margin: "20vh auto", padding: 16 }}>
+    <main className="accesso">
       <h1>Quadra</h1>
+      <p>Budget e consuntivo della BU Documentale.</p>
       <form action={async () => { "use server"; await signIn("google", { redirectTo: "/schede" }); }}>
-        <button type="submit">Accedi con Google (aicof.it)</button>
+        <button type="submit" className="btn primary">Accedi con l’account Google aziendale</button>
       </form>
     </main>
   );
