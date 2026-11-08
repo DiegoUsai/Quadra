@@ -70,8 +70,8 @@ export const REGOLE_H: DefinizioneRegola[] = [
   },
   {
     codice: "H04", nome: "Spec. Voce non ammessa", gruppo: "H", severita: "media", soglie: {},
-    descrizione: "Spec. Voce di una riga di Costi/Ricavi che non è tra le Linee Servizio del Lookup. Un avviso per voce e contratto, con il numero di righe.",
-    esegui: (ctx) => fuori(ctx, "linee_servizio", righeUsate(ctx, "spec_voce"), () => "Spec. Voce", { assente: "media", variante: "media" }),
+    descrizione: "Spec. Voce di una riga di Costi/Ricavi che non è tra i valori della colonna Spec. Voce del Lookup (in sua assenza, tra le Linee Servizio). Un avviso per voce e contratto, con il numero di righe.",
+    esegui: (ctx) => fuori(ctx, ammessi(ctx, "spec_voce").length ? "spec_voce" : "linee_servizio", righeUsate(ctx, "spec_voce"), () => "Spec. Voce", { assente: "media", variante: "media" }),
   },
   {
     codice: "H05", nome: "Tipo servizio non ammesso", gruppo: "H", severita: "alta", soglie: {},
