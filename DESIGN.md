@@ -42,6 +42,10 @@ typography:
     fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "1.125rem"
     fontWeight: 700
+  wordmark:
+    fontFamily: "Source Serif 4, Georgia, serif"
+    fontSize: "1.375rem"
+    fontWeight: 700
   body:
     fontFamily: "Public Sans, system-ui, Segoe UI, sans-serif"
     fontSize: "1rem"
@@ -143,7 +147,7 @@ Fondo #1b1210, pannello #261a16, testo #f6e6d8, tenue #c9ae9d, filetto #4a3329; 
 - **Heading** (700, 1.125rem): titolo delle schede.
 - **Body** (400, 1rem, 1.5): testo, schede, sottotitolo.
 - **Caption** (600 per etichette e controlli, 0.875rem): tabelle, note, legende, pulsanti secondari.
-- Marchio nella barra superiore: serif 700, 1.375rem (valore locale).
+- **Wordmark** (700, 1.375rem, token `--cds-font-size-wordmark`): la scritta "Quadra" nella barra superiore, accanto al marchio. È un gradino della scala, usato solo lì.
 
 ### Named Rules
 **The Tabular Figures Rule.** Ogni cifra in colonna, KPI o tabella, usa numeri tabulari.

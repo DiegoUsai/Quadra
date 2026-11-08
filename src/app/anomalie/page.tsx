@@ -8,6 +8,7 @@ import { dove } from "@/lib/regole/descrivi";
 import { gidFogli } from "@/lib/scadenzario/google";
 import Barra from "../Barra";
 import { prendiInCarico, riconosci, risolvi } from "./azioni";
+import "./anomalie.css";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ const REGOLA = new Map(REGOLE.map((r) => [r.codice, r]));
 type Filtri = { severita?: string; regola?: string; stato?: string; pm?: string; q?: string };
 type Riga = typeof anomalia.$inferSelect;
 
+const Segno = ({ v }: { v: string }) => <span className={`sev-segno sev-${v}`} aria-hidden="true" />;
 
 export default async function Anomalie({ searchParams }: { searchParams: Promise<Filtri> }) {
   const f = await searchParams;
@@ -48,86 +50,90 @@ export default async function Anomalie({ searchParams }: { searchParams: Promise
   // Link che apre il foglio sulla riga dell'anomalia, già selezionata.
   const linkFoglio = (a: Riga) => idFoglio && gid && a.foglio && a.rigaFoglio && gid[a.foglio] !== undefined
     ? `https://docs.google.com/spreadsheets/d/${idFoglio}/edit#gid=${gid[a.foglio]}&range=${a.rigaFoglio}:${a.rigaFoglio}` : null;
-  const cella: React.CSSProperties = { padding: "8px 8px", borderBottom: "1px solid var(--color-border-line)", textAlign: "left", fontSize: 13, verticalAlign: "top" };
-  const muto: React.CSSProperties = { color: "var(--color-fg-muted)" };
+  const vista = (v: string, et: string) => <a href={href({ stato: v })} aria-current={stato === v ? "true" : undefined}>{et}</a>;
 
   return (
     <>
       <Barra corrente="/anomalie" />
-      <main style={{ maxWidth: 1180, margin: "0 auto", padding: 16 }}>
-        <h1 style={{ fontFamily: "var(--font-anthropic-serif)", fontWeight: 700, marginBottom: 4 }}>Anomalie</h1>
-        <p style={{ ...muto, marginTop: 0 }}>
-          Da trattare: {SEVERITA.map((v) => `${n(v)} ${nome(v).toLowerCase()}`).join(" · ")}. La correzione si fa sul foglio: «Apri nel foglio» porta alla riga.
-        </p>
+      <main className="pagina">
+        <h1>Anomalie</h1>
+        <p className="sottotitolo">Le anomalie da trattare, per gravità. La correzione si fa sul foglio: «Apri nel foglio» porta alla riga.</p>
 
-        <form method="get" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "end", margin: "12px 0" }}>
-          <label style={{ fontSize: 12, display: "grid", gap: 2 }}>Severità
-            <select name="severita" defaultValue={f.severita ?? ""} className="btn"><option value="">Tutte</option>
+        <div className="conteggi" role="group" aria-label="Anomalie da trattare per gravità">
+          {SEVERITA.map((v) => (
+            <div key={v}><span className="n">{n(v)}</span><span className="et"><Segno v={v} />{nome(v)}</span></div>
+          ))}
+        </div>
+
+        <form method="get" className="filtri">
+          <label>Severità
+            <select name="severita" defaultValue={f.severita ?? ""} className="campo"><option value="">Tutte</option>
               {SEVERITA.map((v) => <option key={v} value={v}>{nome(v)}</option>)}</select></label>
-          <label style={{ fontSize: 12, display: "grid", gap: 2 }}>Stato
-            <select name="stato" defaultValue={stato} className="btn">
+          <label>Stato
+            <select name="stato" defaultValue={stato} className="campo">
               {["da_trattare", ...STATI, "tutte"].map((v) => <option key={v} value={v}>{nome(v)}</option>)}</select></label>
-          <label style={{ fontSize: 12, display: "grid", gap: 2 }}>Tipo di anomalia
-            <select name="regola" defaultValue={f.regola ?? ""} className="btn" style={{ maxWidth: 280 }}><option value="">Tutte</option>
+          <label className="largo">Tipo di anomalia
+            <select name="regola" defaultValue={f.regola ?? ""} className="campo"><option value="">Tutte</option>
               {["A", "B", "C", "D", "H", "K"].map((g) => <option key={g} value={g}>Tutto il gruppo {g}</option>)}
               {REGOLE.map((r) => <option key={r.codice} value={r.codice}>{r.nome} ({r.codice})</option>)}</select></label>
-          <label style={{ fontSize: 12, display: "grid", gap: 2 }}>PM
-            <select name="pm" defaultValue={f.pm ?? ""} className="btn"><option value="">Tutti</option>
+          <label>PM
+            <select name="pm" defaultValue={f.pm ?? ""} className="campo"><option value="">Tutti</option>
               {pm.filter((x) => x.pm).map((x) => <option key={x.pm} value={x.pm!}>{x.pm}</option>)}</select></label>
-          <label style={{ fontSize: 12, display: "grid", gap: 2 }}>Cerca contratto
-            <input name="q" defaultValue={f.q ?? ""} className="btn" style={{ minWidth: 180 }} /></label>
-          <button type="submit" className="btn primary">Filtra</button>
-          <a href="/anomalie" className="btn">Azzera</a>
+          <label>Cerca contratto
+            <input name="q" defaultValue={f.q ?? ""} className="campo" /></label>
+          <div className="comandi">
+            <button type="submit" className="btn primary">Filtra</button>
+            <a href="/anomalie" className="btn">Azzera</a>
+          </div>
         </form>
 
-        <p style={{ fontSize: 12, ...muto }}>
-          {righe.length === 200 ? "Mostrate le prime 200 per severità. " : `${righe.length} anomalie. `}
-          <a href={href({ stato: "da_trattare" })}>da trattare</a> · <a href={href({ stato: "riconosciuta" })}>riconosciute</a> · <a href={href({ stato: "risolta" })}>risolte</a>
+        <p className="viste">
+          <span>{righe.length === 200 ? "Mostrate le prime 200 per gravità." : `${righe.length} anomalie.`}</span>
+          {vista("da_trattare", "Da trattare")}{vista("riconosciuta", "Riconosciute")}{vista("risolta", "Risolte")}
         </p>
 
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ borderCollapse: "collapse", width: "100%" }}>
-            <thead><tr>{["Severità", "Anomalia e come risolverla", "Dove", "Stato", "Azioni"].map((h) => <th key={h} scope="col" style={cella}>{h}</th>)}</tr></thead>
+        {righe.length === 0 ? <p className="vuoto">Nessuna anomalia con questi filtri.</p> : (
+          <table className="tab-anom">
+            <thead><tr>{["Severità", "Anomalia e come risolverla", "Dove", "Stato", "Azioni"].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
             <tbody>{righe.map((a) => {
               const r = REGOLA.get(a.regola), d = dove(a), link = linkFoglio(a), rimedio = rimedioDi(a.regola);
               return (
                 <tr key={a.id}>
-                  <td style={cella}><strong>{nome(a.severita)}</strong></td>
-                  <td style={{ ...cella, maxWidth: 440 }}>
-                    <strong title={r?.descrizione}>{r?.nome ?? a.regola}</strong> <span style={muto}>({a.regola})</span>
+                  <td data-label="Severità"><span className="sev"><Segno v={a.severita} />{nome(a.severita)}</span></td>
+                  <td data-label="Anomalia" className="corpo">
+                    <span className="titolo" title={r?.descrizione}>{r?.nome ?? a.regola}</span> <span className="muto">({a.regola})</span>
                     <div>{a.messaggio}</div>
-                    {rimedio && <div style={{ ...muto, marginTop: 4 }}><strong style={{ color: "var(--color-fg)" }}>Come risolvere: </strong>{rimedio}</div>}
+                    {rimedio && <div className="rimedio"><b>Come risolvere: </b>{rimedio}</div>}
                   </td>
-                  <td style={cella}>
-                    <div><strong>{d.principale}</strong></div>
-                    {d.dettaglio && <div style={muto}>{d.dettaglio}</div>}
-                    {a.pm && <div style={muto}>PM {a.pm}</div>}
+                  <td data-label="Dove">
+                    <div className="titolo">{d.principale}</div>
+                    {d.dettaglio && <div className="muto">{d.dettaglio}</div>}
+                    {a.pm && <div className="muto">PM {a.pm}</div>}
                     {link
-                      ? <a href={link} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: "inline-block", marginTop: 6 }}>Apri nel foglio ↗{a.rigaFoglio ? ` (riga ${a.rigaFoglio})` : ""}</a>
-                      : <div style={muto}>{a.foglio ?? ""}{a.rigaFoglio ? `, riga ${a.rigaFoglio}` : ""}</div>}
+                      ? <a href={link} target="_blank" rel="noopener noreferrer" className="btn">Apri nel foglio ↗{a.rigaFoglio ? ` (riga ${a.rigaFoglio})` : ""}</a>
+                      : <div className="muto">{a.foglio ?? ""}{a.rigaFoglio ? `, riga ${a.rigaFoglio}` : ""}</div>}
                   </td>
-                  <td style={cella}>{nome(a.stato)}{a.assegnataA ? <div style={muto}>{a.assegnataA}</div> : null}</td>
-                  <td style={cella}>
+                  <td data-label="Stato">{nome(a.stato)}{a.assegnataA ? <div className="muto">{a.assegnataA}</div> : null}</td>
+                  <td data-label="Azioni">
                     {puoAgire && !["risolta", "riconosciuta"].includes(a.stato) ? (
-                      <div style={{ display: "grid", gap: 4 }}>
+                      <div className="azioni">
                         {a.stato !== "in_carico" && <form action={prendiInCarico}><input type="hidden" name="id" value={a.id} /><button className="btn" type="submit">Prendi in carico</button></form>}
-                        <details><summary className="btn" style={{ display: "inline-block" }}>Risolvi</summary>
-                          <form action={risolvi} style={{ display: "grid", gap: 4, marginTop: 4 }}><input type="hidden" name="id" value={a.id} />
-                            <input name="nota" required placeholder="Nota di risoluzione" className="btn" /><button className="btn primary" type="submit">Conferma</button></form></details>
-                        <details><summary className="btn" style={{ display: "inline-block" }}>Riconosci</summary>
-                          <form action={riconosci} style={{ display: "grid", gap: 4, marginTop: 4 }}><input type="hidden" name="id" value={a.id} />
-                            <input name="motivo" required placeholder="Motivo" className="btn" />
-                            <label style={{ fontSize: 12 }}>Valida fino al <input type="date" name="fino" className="btn" /></label>
-                            <button className="btn primary" type="submit">Conferma</button></form></details>
+                        <details><summary className="btn">Risolvi</summary>
+                          <div className="modulo"><form action={risolvi}><input type="hidden" name="id" value={a.id} />
+                            <input name="nota" required placeholder="Nota di risoluzione" aria-label="Nota di risoluzione" className="campo" /><button className="btn primary" type="submit">Conferma</button></form></div></details>
+                        <details><summary className="btn">Riconosci</summary>
+                          <div className="modulo"><form action={riconosci}><input type="hidden" name="id" value={a.id} />
+                            <input name="motivo" required placeholder="Motivo" aria-label="Motivo" className="campo" />
+                            <label>Valida fino al <input type="date" name="fino" className="campo" /></label>
+                            <button className="btn primary" type="submit">Conferma</button></form></div></details>
                       </div>
-                    ) : <span style={muto}>—</span>}
+                    ) : <span className="muto">—</span>}
                   </td>
                 </tr>
               );
             })}</tbody>
           </table>
-        </div>
-        {righe.length === 0 && <p style={muto}>Nessuna anomalia con questi filtri.</p>}
+        )}
       </main>
     </>
   );
