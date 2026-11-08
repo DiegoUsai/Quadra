@@ -19,6 +19,8 @@ export type Contesto = {
   budget?: RigaBudget[];
   variazioni?: VariazioneCella[];
   lookup?: RigaLookup[];
+  // Chiavi delle righe di Costi/Ricavi comparse dopo la lettura di base (variazione "nuova"): servono a B04 per notificare solo ciò che è nuovo.
+  righeNuove?: Set<string>;
 };
 
 export type Severita = "bloccante" | "alta" | "media" | "info";
@@ -33,6 +35,7 @@ export type Grezza = {
   foglio: "Contratti Attivi" | "Costi/Ricavi";
   rigaFoglio?: number | null;
   pm?: string | null;
+  nuovaDaOggi?: boolean; // con la base silenziosa della regola, questa anomalia si notifica comunque (è nata dopo la lettura di base)
 };
 
 export type Soglie = Record<string, unknown>;
@@ -45,5 +48,7 @@ export type DefinizioneRegola = {
   severita: Severita;
   soglie: Soglie; // valori iniziali, modificabili dal database
   notifica?: boolean;
+  // Alla prima esecuzione per questo tipo di entità le anomalie già presenti si registrano come già notificate (niente arretrato su Slack).
+  baselineSilenziosa?: boolean;
   esegui: (ctx: Contesto, soglie: Soglie) => Grezza[];
 };

@@ -28,7 +28,8 @@ export async function contestoCorrente(oggi: string): Promise<Contesto> {
     .from(variazione).innerJoin(snapshotScadenzario, eq(variazione.snapshotId, snapshotScadenzario.id)).where(and(eq(variazione.tipo, "modificata"), gte(snapshotScadenzario.lettoIl, da)));
   const variazioni = vars.flatMap((v) => ((v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? []).map((c) => ({ foglio: v.foglio, chiave: v.chiave, campo: c.campo, prima: c.prima, dopo: c.dopo, quando: v.quando.toISOString() })));
   const lookup = righe.filter((r) => r.foglio === "Lookup").map((r) => ({ campo: String((r.dati as Dati).campo), valore: String((r.dati as Dati).valore), rigaFoglio: r.rigaFoglio, ripetuto: /#d+$/.test(r.chiave) }));
-  return { oggi, contratti: cv("Contratti Attivi"), movimenti: cv("Costi/Ricavi"), budget, variazioni, lookup };
+  const righeNuove = new Set((await db.select({ chiave: variazione.chiave }).from(variazione).where(and(eq(variazione.foglio, "Costi/Ricavi"), eq(variazione.tipo, "nuova")))).map((v) => v.chiave));
+  return { oggi, contratti: cv("Contratti Attivi"), movimenti: cv("Costi/Ricavi"), budget, variazioni, lookup, righeNuove };
 }
 
 // Un asterisco finale vale come jolly: "C*" copre tutte le regole del gruppo C, "LOTTO_*" tutti i contratti con quel prefisso.
@@ -48,6 +49,11 @@ export const correzioneCopre = (c: typeof correzione.$inferSelect, a: Anomalia, 
   return (c.entitaChiave === a.entitaChiave || c.entitaChiave === prog) && (p.anno === undefined || p.anno === a.periodo?.anno) && (p.mese === undefined || p.mese === a.periodo?.mese);
 };
 
+// Prima esecuzione di una regola con base silenziosa per quel tipo di entità: le anomalie già presenti non si notificano
+// (si registrano come già notificate); restano notificate quelle nate dopo la lettura di base (`nuovaDaOggi`).
+export const silenzioso = (a: Pick<Anomalia, "regola" | "entitaTipo" | "baseline" | "nuovaDaOggi">, noti: Set<string>) =>
+  a.baseline && !a.nuovaDaOggi && !noti.has(`${a.regola}|${a.entitaTipo}`);
+
 // Confronta le anomalie prodotte dalle regole con quelle già registrate (specifiche 5.2, 7.7, 10.2):
 // nuova -> aperta; ricomparsa dopo la risoluzione -> riaperta; sparita -> risolta; eccezione valida -> riconosciuta;
 // eccezione scaduta -> riaperta. Una anomalia già nota e invariata non cambia (niente rumore).
@@ -62,6 +68,7 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
   const esistenti = new Map((await db.select().from(anomalia)).map((a) => [a.fingerprint, a]));
   const eccezioni = await db.select().from(eccezione);
   const correzioni = await db.select().from(correzione).where(eq(correzione.attiva, true));
+  const noti = new Set([...esistenti.values()].map((e) => `${e.regola}|${e.entitaTipo}`));
   const viste = new Set<string>();
   const nuove: (typeof anomalia.$inferInsert)[] = [];
   const cambi: { id: number; stato: string; nota?: string }[] = [];
@@ -78,6 +85,7 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
         fingerprint: a.fingerprint, regola: a.regola, entitaTipo: a.entitaTipo, entitaChiave: a.entitaChiave, periodoAnno: a.periodo?.anno ?? null, periodoMese: a.periodo?.mese ?? null,
         severita: a.severita, messaggio: a.messaggio, valoriJson: a.valori ?? null, stato: conEccezione ? "riconosciuta" : "aperta",
         primaVistaSnapshot: snapshotId, ultimaVistaSnapshot: snapshotId, rigaFoglio: a.rigaFoglio ?? null, foglio: a.foglio, pm: a.pm ?? null,
+        notificataIl: silenzioso(a, noti) ? new Date() : null,
       });
       continue;
     }

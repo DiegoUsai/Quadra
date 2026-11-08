@@ -27,17 +27,23 @@ export const REGOLE_B: DefinizioneRegola[] = [
       .map((c) => daContratto(c, { messaggio: `Da lavorare ${c.d.da_lavorare} ≠ importo − lavorato`, valori: { daLavorare: c.d.da_lavorare, atteso: Math.round(((c.d.importo as number) - (c.d.lav_totale as number)) * 100) / 100 } })),
   },
   {
-    codice: "B04", nome: "Lavorato fuori finestra", gruppo: "B", severita: "alta", soglie: {},
-    descrizione: "Ricavi in mesi precedenti alla data inizio o successivi alla data fine del contratto.",
+    // Una anomalia per riga di ricavo (non per contratto): una riga nuova fuori finestra compare sempre, anche su un contratto già segnalato.
+    codice: "B04", nome: "Lavorato fuori finestra", gruppo: "B", severita: "alta", soglie: {}, baselineSilenziosa: true,
+    descrizione: "Ricavo in un mese precedente alla data inizio o successivo alla data fine del contratto. Una anomalia per riga di Costi/Ricavi.",
     esegui: (ctx) => {
       const ric = ricaviPer(ctx.movimenti);
       return unificati(ctx.contratti).filter(attiviRicavi).flatMap((c) => {
         const ini = isData(c.d.data_inizio) ? c.d.data_inizio.slice(0, 7) : null, fin = isData(c.d.data_fine) ? c.d.data_fine.slice(0, 7) : null;
-        const fuori = (ric.get(idDi(c)) ?? []).filter((m) => isData(m.d.anno_mese) && (num(m.d.importo) ?? 0) !== 0
-          && ((ini && (m.d.anno_mese as string).slice(0, 7) < ini) || (fin && (m.d.anno_mese as string).slice(0, 7) > fin)));
-        if (!fuori.length) return [];
-        const mesi = [...new Set(fuori.map((m) => (m.d.anno_mese as string).slice(0, 7)))].sort();
-        return [daContratto(c, { messaggio: `Ricavi fuori dalla finestra del contratto in ${mesi.length} mesi (${mesi[0]}${mesi.length > 1 ? " … " + mesi[mesi.length - 1] : ""})`, valori: { mesi, inizio: c.d.data_inizio, fine: c.d.data_fine } })];
+        return (ric.get(idDi(c)) ?? [])
+          .filter((m) => isData(m.d.anno_mese) && (num(m.d.importo) ?? 0) !== 0 && ((ini && (m.d.anno_mese as string).slice(0, 7) < ini) || (fin && (m.d.anno_mese as string).slice(0, 7) > fin)))
+          .map((m) => {
+            const mese = (m.d.anno_mese as string).slice(0, 7);
+            return daMovimento(m, {
+              messaggio: `Ricavo di ${(num(m.d.importo) ?? 0).toLocaleString("it-IT")} € in ${mese} fuori dalla finestra del contratto (${c.d.data_inizio ?? "?"} - ${c.d.data_fine ?? "?"})`,
+              valori: { contratto: idDi(c), importo: m.d.importo, mese, inizio: c.d.data_inizio, fine: c.d.data_fine },
+              pm: s(c.d.pm) || null, nuovaDaOggi: ctx.righeNuove?.has(m.chiave) ?? false,
+            });
+          });
       });
     },
   },
