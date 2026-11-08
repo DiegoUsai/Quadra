@@ -6,7 +6,7 @@ export const OGGI = "2026-11-07";
 export const contratto = (id: string, d: Record<string, string | number | null> = {}, riga = 2): Contratto => ({
   chiave: id, rigaFoglio: riga,
   d: {
-    id_contratto: id, id_progetto: "PRJ", stato: "Contrattualizzato", attivo_passivo: "Attivo", importo: 120000, durata_mesi: 12,
+    id_contratto: id, id_progetto: "PRJ", stato: "Contrattualizzato", tipologia: "Appalto", attivo_passivo: "Attivo", importo: 120000, durata_mesi: 12,
     data_inizio: "2026-01-01", data_fine: "2026-12-31", linea_business: "Documentale", pm: "Anna",
     lav_2021: 0, lav_2025: 0, lav_2026: 100000, lav_totale: 100000, da_lavorare: 20000, squadratura_budget: 0, squadratura_piano_fatt: 0,
     check_fatt_lav: "OK", ...d,
