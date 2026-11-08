@@ -55,7 +55,7 @@
   }
   function download(name, t) {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + t], { type: 'text/csv;charset=utf-8' }));
+    a.href = URL.createObjectURL(new Blob(['\uFEFF' + t], { type: 'text/csv;charset=utf-8' }));
     a.download = name; document.body.appendChild(a); a.click(); a.remove();
   }
   function ensureBar(el) {
@@ -81,7 +81,7 @@
     window.dispatchEvent(new Event('resize'));
   }
   tabs.forEach((b, i) => {
-    b.id = 'tab-' + b.dataset.tab; b.setAttribute('aria-controls', b.dataset.tab);
+    b.dataset.t = b.textContent; b.id = 'tab-' + b.dataset.tab; b.setAttribute('aria-controls', b.dataset.tab);
     const p = $(b.dataset.tab); p.setAttribute('role', 'tabpanel'); p.setAttribute('aria-labelledby', b.id);
     b.addEventListener('click', () => { showTab(b.dataset.tab); dash.setLink(b.dataset.tab); });
     b.addEventListener('keydown', ev => {
@@ -176,8 +176,16 @@
     axisStyle(ax); ax.select('.domain').remove();
     ax.selectAll('line').attr('stroke', 'var(--cds-chart-grid)');
   }
-  const xAxis = (svg, x, h, m) => { const xa = svg.append('g').attr('transform', 'translate(0,' + (h - m.b) + ')').call(d3.axisBottom(x).tickSize(0)); axisStyle(xa); xa.select('.domain').attr('stroke', 'var(--cds-chart-axis)'); };
-  const txtOn = col => { try { return d3.hcl(col).l > 62 ? '#1f1f1f' : '#fff'; } catch (e) { return '#fff'; } };
+  // un'etichetta che esce dal bordo (ultima colonna, schermi stretti) si ancora al bordo invece di tagliarsi
+  function fitTicks(sel, w) {
+    sel.selectAll('.tick text').each(function () {
+      const t = d3.select(this), tx = +/translate\(([-\d.]+)/.exec(this.parentNode.getAttribute('transform'))[1], b = this.getBBox();
+      if (tx + b.x + b.width > w - 2) t.attr('text-anchor', 'end').attr('x', w - 2 - tx);
+      else if (tx + b.x < 2) t.attr('text-anchor', 'start').attr('x', 2 - tx);
+    });
+  }
+  const xAxis = (svg, x, h, m) => { const xa = svg.append('g').attr('transform', 'translate(0,' + (h - m.b) + ')').call(d3.axisBottom(x).tickSize(0).tickPadding(10)); axisStyle(xa); xa.select('.domain').attr('stroke', 'var(--cds-chart-axis)'); fitTicks(xa, +svg.attr('viewBox').split(' ')[2]); };
+  const txtOn = col => { try { return d3.hcl(col).l > 62 ? '#2a1b14' : '#fff'; } catch (e) { return '#fff'; } };
 
   // barre raggruppate; opt.extra(i) aggiunge righe al tooltip, opt.onClick(i) abilita il clic
   function gbar(el, cats, series, fmtVal, opt) {
@@ -213,7 +221,7 @@
     const y = d3.scaleLinear([Math.min(0, d3.min(all)), d3.max(all) * 1.1], [h - m.b, m.t]);
     const x = d3.scalePoint(cats, [m.l + 12, w - m.r - 6]);
     yAxis(svg.append('g'), y, w, m, fmtAxis);
-    const xa = svg.append('g').attr('transform', 'translate(0,' + (h - m.b) + ')').call(d3.axisBottom(x).tickSize(0)); axisStyle(xa); xa.select('.domain').remove();
+    const xa = svg.append('g').attr('transform', 'translate(0,' + (h - m.b) + ')').call(d3.axisBottom(x).tickSize(0).tickPadding(10)); axisStyle(xa); xa.select('.domain').remove(); fitTicks(xa, w);
     series.forEach(s => {
       const pts = cats.map((c, i) => [x(c), num(s.vals[i]) === null ? null : y(+s.vals[i])]).filter(p => p[1] !== null);
       svg.append('path').attr('d', d3.line()(pts)).attr('fill', 'none').attr('stroke', s.color).attr('stroke-width', 2)
@@ -279,7 +287,7 @@
         const td = tr.insertCell(), c = cell(rl, cl);
         if (!c) { td.textContent = '—'; er.push(''); return; }
         td.textContent = c.label; er.push(xnum(c.v * 100));
-        td.style.background = heatCol(c.v); td.style.color = '#1f1f1f';
+        td.style.background = heatCol(c.v); td.style.color = '#2a1b14';
         kbCell(td, tp, () => (c.tip));        td.addEventListener('mouseleave', tp.hide);
       });
     });
@@ -296,7 +304,7 @@
       rows.push({ k: a + ' budget', q: +gc.quota_budget, vc: gc.budget, vv: gv.budget });
       if (num(gc.quota_consuntivo) !== null) rows.push({ k: a + ' consuntivo', q: +gc.quota_consuntivo, vc: gc.consuntivo, vv: gv.consuntivo });
     });
-    const h = rows.length * 24 + 12, m = { l: 108, r: 8, t: 4, b: 4 };
+    const h = rows.length * 24 + 12, m = { l: 132, r: 8, t: 4, b: 4 };
     const { svg, w } = box(el, h, [{ name: 'Canoni', color: c[0] }, { name: 'Variabile (consumo, corpo, altro)', color: c[2] }]);
     const tp = tipFor(el);
     const y = d3.scaleBand(rows.map(r => r.k), [m.t, h - m.b]).paddingInner(0.22);
@@ -363,7 +371,7 @@
     const pts = D.map((r, i) => [x(cats[i]) + x.bandwidth() / 2, y(r.costi)]);
     svg.append('path').attr('d', d3.line().curve(d3.curveMonotoneX)(pts)).attr('fill', 'none').attr('stroke', c[3]).attr('stroke-width', 2.5).attr('stroke-linecap', 'round');
     pts.forEach(p => svg.append('circle').attr('cx', p[0]).attr('cy', p[1]).attr('r', 3.5).attr('fill', c[3]).attr('stroke', 'var(--color-panel)').attr('stroke-width', 1.5));
-    if (fc.length) svg.append('text').attr('x', (x(cats[fc[0]]) + x(cats[fc[fc.length - 1]]) + x.bandwidth()) / 2).attr('y', m.t + 6).attr('text-anchor', 'middle').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text('forecast');
+    if (fc.length) svg.append('text').attr('x', Math.min(w - 30, (x(cats[fc[0]]) + x(cats[fc[fc.length - 1]]) + x.bandwidth()) / 2)).attr('y', m.t + 6).attr('text-anchor', 'middle').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text('forecast');
     D.forEach((r, i) => {
       svg.append('rect').attr('x', x(cats[i]) - x.step() * 0.14).attr('y', m.t).attr('width', x.step()).attr('height', h - m.b - m.t).attr('fill', 'transparent')
         .call(kb(tp, () => (head(cats[i] + ' 2026 (' + r.fonte + ')') + row(c[0], 'Ricavi', eur(r.ricavi)) + row('var(--color-fg)', 'Budget ricavi', eur(r.ricavi_budget)) + dl('Scostamento ricavi', r.scostamento) + row(c[3], 'Costi', eur(r.costi)) + '<div>Margine: ' + eurs(r.margine) + '</div>')))        .on('mouseleave', tp.hide);
@@ -484,7 +492,7 @@
       const find = (a, g) => G.find(r => +r.anno === +a && r.gruppo === g) || {};
       const mk = g => ({ b: anni.map(a => find(a, g).budget), c: anni.map(a => find(a, g).consuntivo), s: anni.map(a => find(a, g).scostamento) });
       const ca = mk('Canone'), va = mk(GV);
-      const lab = anni.map(a => String(a) + (a === 2027 ? ' (solo budget)' : ''));
+      const lab = anni.map(a => String(a) + (a === 2027 ? ' budget' : ''));
       gbar($('ch-canoni'), lab, [{ name: 'Budget ponderato', color: c[1], vals: ca.b }, { name: 'Consuntivo', color: c[0], vals: ca.c }], eur,
         { extra: i => dl('Scostamento', ca.s[i]), onClick: i => goDrill(anni[i], 'Canone') });
       gbar($('ch-var'), lab, [{ name: 'Budget ponderato', color: c[1], vals: va.b }, { name: 'Consuntivo', color: c[0], vals: va.c }], eur,
@@ -588,7 +596,7 @@
       for (let mm = 1; mm <= 12; mm++) {
         const td = tr.insertCell(), r = X.find(x => x.riga === n && +x.mese === mm);
         if (!r) { td.textContent = '—'; continue; }
-        td.textContent = kfmt(r.budget); td.style.background = FCOL[r.fase] || tok('--scala-neutra'); td.style.color = '#1f1f1f';
+        td.textContent = kfmt(r.budget); td.style.background = FCOL[r.fase] || tok('--scala-neutra'); td.style.color = '#2a1b14';
         ex.rows.push([n, MESI[mm - 1], r.fase, String(Math.round(r.budget)), xnum(r.coef), String(Math.round(r.calibrato_mis)), String(Math.round(r.calibrato_prud))]);
         kbCell(td, tp, () => (head(n + ' · ' + MESI[mm - 1]) + row(FCOL[r.fase], 'Fase', r.fase) + '<div>Budget: ' + eur(r.budget) + '</div><div>Coefficiente: ' + dec2(r.coef) + '</div><div>Calibrato misurato: ' + eur(r.calibrato_mis) + '</div><div>Calibrato prudenziale: ' + eur(r.calibrato_prud) + '</div>'));        td.addEventListener('mouseleave', tp.hide);
       }
@@ -603,4 +611,6 @@
     [$('tb-fasi-coef'), $('tb-fasi-riga'), $('fasi-map')].forEach(el => el && ensureBar(el));
   }
   dash.onData(drawFasi);
+  // i grafici di una scheda nascosta si disegnano con una larghezza di ripiego: al cambio scheda e al ridimensionamento si ridisegnano alla larghezza reale
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { draw(); drawFasi(); }, 120); });
 })();
