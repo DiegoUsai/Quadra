@@ -4,10 +4,17 @@ export type Dati = Record<string, string | number | null>;
 export type Contratto = { chiave: string; rigaFoglio: number | null; d: Dati };
 export type Movimento = { chiave: string; rigaFoglio: number | null; d: Dati };
 
+// Budget ponderato dei ricavi per Id Progetto e mese (dal seed storico), per le regole del gruppo D.
+export type RigaBudget = { progetto: string; anno: number; mese: number; importo: number };
+// Variazione di una cella tra due snapshot, con data di lettura (regola D04).
+export type VariazioneCella = { foglio: string; chiave: string; campo: string; prima: unknown; dopo: unknown; quando: string };
+
 export type Contesto = {
   oggi: string; // AAAA-MM-GG
   contratti: Contratto[];
   movimenti: Movimento[];
+  budget?: RigaBudget[];
+  variazioni?: VariazioneCella[];
 };
 
 export type Severita = "bloccante" | "alta" | "media" | "info";

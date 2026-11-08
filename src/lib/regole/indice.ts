@@ -1,8 +1,10 @@
 import { REGOLE_A } from "./gruppoA";
 import { REGOLE_B } from "./gruppoB";
+import { REGOLE_C } from "./gruppoC";
+import { REGOLE_D } from "./gruppoD";
 import type { Contesto, DefinizioneRegola, Grezza, Severita, Soglie } from "./tipi";
 
-export const REGOLE: DefinizioneRegola[] = [...REGOLE_A, ...REGOLE_B];
+export const REGOLE: DefinizioneRegola[] = [...REGOLE_A, ...REGOLE_B, ...REGOLE_C, ...REGOLE_D];
 
 // Configurazione modificabile dal database (tabella `regola`): attiva, severità, soglie.
 export type ConfigRegola = { attiva: boolean; severita: Severita; soglie: Soglie; notifica: boolean };

@@ -14,8 +14,8 @@ describe("gruppo A", () => {
     expect(codici(c, "A01")).toEqual(["A01:X"]);
     expect(codici(c, "A02")).toEqual(["A02:X"]);
   });
-  it("A03 data fine prima della data inizio (caso ASPAL con date invertite)", () => {
-    expect(codici(ctx([contratto("ASPAL", { data_inizio: "2022-10-17", data_fine: "2022-04-30" })]), "A03")).toEqual(["A03:ASPAL"]);
+  it("A03 data fine prima della data inizio (date invertite)", () => {
+    expect(codici(ctx([contratto("CTR_DATE", { data_inizio: "2022-10-17", data_fine: "2022-04-30" })]), "A03")).toEqual(["A03:CTR_DATE"]);
   });
   it("A04 refuso 20226 e giorno inesistente, ma non una data corretta", () => {
     const c = ctx([contratto("Z", { data_fine: "31/12/20226" }), contratto("G", { data_fine: "31/09/2023" }), contratto("V", { data_fine: "2040-12-31" }), contratto("F", { data_fine: "2041-01-01" })]);
@@ -47,7 +47,7 @@ describe("gruppo A", () => {
     expect(codici(c, "A09")).toEqual(["A09:N"]);
     expect(codici(c, "A12")).toEqual(["A12:N"]);
   });
-  it("A10 proroga non registrata: scaduto ma con ricavi recenti (caso SIBAR_2025_6/5)", () => {
+  it("A10 proroga non registrata: scaduto ma con ricavi recenti (caso tipico)", () => {
     const scaduto = contratto("PRO", { data_fine: "2026-08-31" });
     const con = ctx([scaduto], [movimento("PRO", "2026-09-01", 1000)]);
     const senza = ctx([scaduto], [movimento("PRO", "2026-02-01", 1000)]);
