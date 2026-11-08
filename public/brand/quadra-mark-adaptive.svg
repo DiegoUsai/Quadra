@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" role="img" aria-label="Quadra">
+  <title>Quadra</title>
+  <style>
+    .anello { stroke: #2A1B14; }
+    .coda { stroke: #B3261E; }
+    @media (prefers-color-scheme: dark) { .anello { stroke: #ECE5DD; } .coda { stroke: #EE6A5F; } }
+  </style>
+  <rect class="anello" x="21" y="19" width="50" height="50" fill="none" stroke-width="12"/>
+  <path class="coda" d="M55 55 L83 83" stroke-width="13" fill="none"/>
+</svg>

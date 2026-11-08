@@ -8,7 +8,7 @@ export default async function Barra({ corrente }: { corrente: string }) {
   const s = await auth();
   return (
     <header className="topbar">
-      <span className="marchio"><img src="/brand/quadra-mark.svg" alt="" width={30} height={30} />Quadra</span>
+      <span className="marchio"><img src="/brand/quadra-mark-adaptive.svg" alt="" width={30} height={30} />Quadra</span>
       <nav aria-label="Sezioni" style={{ display: "flex", gap: 14, flex: 1, marginLeft: 24 }}>
         {[...VOCI, ...(s?.user?.ruolo === "admin" || authSaltata() ? VOCI_ADMIN : [])].map(([href, et]) => (
           <a key={href} href={href} aria-current={href === corrente ? "page" : undefined}

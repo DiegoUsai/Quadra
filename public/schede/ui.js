@@ -267,7 +267,8 @@
 
   // heatmap: scala divergente con il neutro chiaro al 100%
   const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const heatCol = d3.scaleLinear().domain([0.6, 1, 1.4]).range([tok('--scala-bassa'), tok('--scala-neutra'), tok('--scala-alta')]).clamp(true);
+  let heatKey = '', heatScale;
+  const heatCol = v => { const k = tok('--scala-bassa') + tok('--scala-neutra') + tok('--scala-alta'); if (k !== heatKey) { heatKey = k; heatScale = d3.scaleLinear().domain([0.6, 1, 1.4]).range([tok('--scala-bassa'), tok('--scala-neutra'), tok('--scala-alta')]).clamp(true); } return heatScale(v); };
   function heat(host, corner, rowLabels, colLabels, cell) {
     host.textContent = '';
     const lg = document.createElement('div'); lg.className = 'legend';
@@ -287,7 +288,7 @@
         const td = tr.insertCell(), c = cell(rl, cl);
         if (!c) { td.textContent = '—'; er.push(''); return; }
         td.textContent = c.label; er.push(xnum(c.v * 100));
-        td.style.background = heatCol(c.v); td.style.color = '#2a1b14';
+        td.style.background = heatCol(c.v); td.style.color = tok('--scala-inchiostro');
         kbCell(td, tp, () => (c.tip));        td.addEventListener('mouseleave', tp.hide);
       });
     });
@@ -580,7 +581,7 @@
   }
 
   // mappa delle fasi: una cella per riga e mese, con il budget in k€
-  const FCOL = { 'Start-up': tok('--scala-alta'), 'In corsa': tok('--scala-neutra'), 'In chiusura': tok('--scala-bassa') };
+  const FCOL = { get 'Start-up'() { return tok('--scala-alta'); }, get 'In corsa'() { return tok('--scala-neutra'); }, get 'In chiusura'() { return tok('--scala-bassa'); } };
   function phasemap(host, X) {
     host.textContent = '';
     legend(host, Object.keys(FCOL).map(k => ({ name: k, color: FCOL[k] })));
@@ -596,7 +597,7 @@
       for (let mm = 1; mm <= 12; mm++) {
         const td = tr.insertCell(), r = X.find(x => x.riga === n && +x.mese === mm);
         if (!r) { td.textContent = '—'; continue; }
-        td.textContent = kfmt(r.budget); td.style.background = FCOL[r.fase] || tok('--scala-neutra'); td.style.color = '#2a1b14';
+        td.textContent = kfmt(r.budget); td.style.background = FCOL[r.fase] || tok('--scala-neutra'); td.style.color = tok('--scala-inchiostro');
         ex.rows.push([n, MESI[mm - 1], r.fase, String(Math.round(r.budget)), xnum(r.coef), String(Math.round(r.calibrato_mis)), String(Math.round(r.calibrato_prud))]);
         kbCell(td, tp, () => (head(n + ' · ' + MESI[mm - 1]) + row(FCOL[r.fase], 'Fase', r.fase) + '<div>Budget: ' + eur(r.budget) + '</div><div>Coefficiente: ' + dec2(r.coef) + '</div><div>Calibrato misurato: ' + eur(r.calibrato_mis) + '</div><div>Calibrato prudenziale: ' + eur(r.calibrato_prud) + '</div>'));        td.addEventListener('mouseleave', tp.hide);
       }

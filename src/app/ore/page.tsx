@@ -37,7 +37,7 @@ export default async function Ore({ searchParams }: { searchParams: Promise<{ an
       <main style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
         <h1 style={{ fontFamily: "var(--font-anthropic-serif)", fontWeight: 700, marginBottom: 4 }}>Ore rendicontate e assenze</h1>
         <p style={{ ...muto, marginTop: 0 }}>HUB contro Elenco Assenze, solo giorni già chiusi. Visibile solo all&apos;amministratore; su Slack vanno solo i conteggi.</p>
-        {q.errore && <p role="alert" style={{ color: "var(--color-danger, #b3261e)", fontWeight: 600 }}>Controllo non riuscito: {q.errore}</p>}
+        {q.errore && <p role="alert" style={{ color: "var(--color-bad)", fontWeight: 600 }}>Controllo non riuscito: {q.errore}</p>}
         {q.esito && <p role="status" style={{ fontWeight: 600 }}>{q.esito}</p>}
 
         <section aria-label="Scelta del mese" style={{ border: "1px solid var(--color-border-line)", borderRadius: 6, padding: 12, marginBottom: 16 }}>
