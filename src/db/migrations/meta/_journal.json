@@ -36,6 +36,20 @@
       "when": 1794149215270,
       "tag": "0004_lumpy_zzzax",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794153913589,
+      "tag": "0005_nosy_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794154985350,
+      "tag": "0006_nervous_black_tom",
+      "breakpoints": true
     }
   ]
 }

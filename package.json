@@ -19,7 +19,9 @@
     "regole": "tsx scripts/regole.ts",
     "seed:regole": "tsx scripts/seed-regole.ts",
     "notifiche:base": "tsx scripts/notifiche.ts base",
-    "notifiche:prova": "tsx scripts/notifiche.ts prova"
+    "notifiche:prova": "tsx scripts/notifiche.ts prova",
+    "ore": "tsx scripts/ore.ts",
+    "ore:import": "tsx scripts/ore-import.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

@@ -1,7 +1,7 @@
 import { auth, signOut, authSaltata } from "@/auth";
 
 const VOCI = [["/schede", "Schede"], ["/anomalie", "Anomalie"], ["/storico", "Import e storico"]] as const;
-const VOCE_ADMIN = ["/regole", "Regole"] as const; // solo amministratore
+const VOCI_ADMIN = [["/ore", "Ore"], ["/regole", "Regole"]] as const; // solo amministratore
 
 // Barra comune: marchio, navigazione, utente con ruolo e uscita.
 export default async function Barra({ corrente }: { corrente: string }) {
@@ -10,7 +10,7 @@ export default async function Barra({ corrente }: { corrente: string }) {
     <header className="topbar">
       <span className="marchio">Quadra</span>
       <nav aria-label="Sezioni" style={{ display: "flex", gap: 14, flex: 1, marginLeft: 24 }}>
-        {[...VOCI, ...(s?.user?.ruolo === "admin" || authSaltata() ? [VOCE_ADMIN] : [])].map(([href, et]) => (
+        {[...VOCI, ...(s?.user?.ruolo === "admin" || authSaltata() ? VOCI_ADMIN : [])].map(([href, et]) => (
           <a key={href} href={href} aria-current={href === corrente ? "page" : undefined}
             style={{ color: "var(--color-fg)", fontWeight: href === corrente ? 700 : 400, textDecoration: href === corrente ? "underline" : "none", textUnderlineOffset: 6 }}>{et}</a>
         ))}

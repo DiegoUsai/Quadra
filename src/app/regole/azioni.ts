@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth, authSaltata } from "@/auth";
 import { getDb } from "@/db";
-import { auditLog, eccezione, mappaUtente, regola, snapshotScadenzario } from "@/db/schema";
+import { auditLog, eccezione, mappaUtente, oreEccezione, regola, snapshotScadenzario } from "@/db/schema";
+import { TIPI_ORE } from "@/lib/hub/eccezioni";
 import { soglieValide } from "@/lib/regole/soglie";
 import { aggiornaAnomalie } from "@/lib/regole/persistenza";
 
@@ -66,5 +67,40 @@ export async function salvaMappaPm(formData: FormData) {
   if (!id) await db.delete(mappaUtente).where(eq(mappaUtente.pmNome, pm));
   else await db.insert(mappaUtente).values({ pmNome: pm, slackUserId: id }).onConflictDoUpdate({ target: mappaUtente.pmNome, set: { slackUserId: id } });
   await db.insert(auditLog).values({ utente: chi, azione: "mappa_pm.salva", entita: `pm:${pm}`, primaJson: null, dopoJson: { slack: id || null } });
+  revalidatePath("/regole");
+}
+
+// Eccezioni del controllo ore (part-time, presa servizio, remoti...): dati, con motivo, autore e audit.
+const GIORNI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
+const FormOre = z.object({
+  tipo: z.enum(TIPI_ORE), nome: z.string().trim().min(3, "nome mancante"), motivo: z.string().trim().min(3, "il motivo è obbligatorio"),
+  oreGiorno: z.string().optional(), liberi: z.string().optional(), dal: z.string().optional(), fino: z.string().optional(),
+});
+
+export async function aggiungiOreEccezione(formData: FormData) {
+  const chi = await admin(), db = getDb();
+  const f = FormOre.parse(Object.fromEntries(formData));
+  const liberi = (f.liberi ?? "").toLowerCase().split(/[\s,]+/).filter(Boolean);
+  if (liberi.some((g) => !GIORNI.includes(g))) throw new Error("giorni liberi: usa lun, mar, mer, gio, ven, sab, dom separati da virgola");
+  const parametri = f.tipo !== "orario" ? {} : {
+    ...(f.oreGiorno ? { oreGiorno: Number(f.oreGiorno.replace(",", ".")) } : {}),
+    ...(liberi.length ? { ore: Object.fromEntries(liberi.map((g) => [g, 0])) } : {}),
+  };
+  if (f.tipo === "orario" && !Object.keys(parametri).length) throw new Error("orario: indica le ore al giorno o i giorni liberi");
+  if (f.tipo === "presa_servizio" && !f.dal) throw new Error("presa servizio: indica il primo giorno in servizio");
+  const riga = { tipo: f.tipo, nome: f.nome, parametriJson: parametri, motivo: f.motivo, approvataDa: chi, validaDal: f.dal || null, validaFino: f.fino || null };
+  const [nuova] = await db.insert(oreEccezione).values(riga).returning({ id: oreEccezione.id });
+  await db.insert(auditLog).values({ utente: chi, azione: "ore_eccezione.aggiungi", entita: `ore_eccezione:${nuova.id}`, primaJson: null, dopoJson: riga });
+  revalidatePath("/regole");
+}
+
+export async function eliminaOreEccezione(formData: FormData) {
+  const chi = await admin(), db = getDb(), id = Number(formData.get("id"));
+  const [e] = await db.select().from(oreEccezione).where(eq(oreEccezione.id, id));
+  if (!e) throw new Error("eccezione non trovata");
+  await db.batch([
+    db.delete(oreEccezione).where(eq(oreEccezione.id, id)),
+    db.insert(auditLog).values({ utente: chi, azione: "ore_eccezione.elimina", entita: `ore_eccezione:${id}`, primaJson: e, dopoJson: null }),
+  ]);
   revalidatePath("/regole");
 }

@@ -206,3 +206,32 @@ export const notifica = pgTable("notifica", {
   esito: text("esito").notNull(), // ok | errore
   threadTs: text("thread_ts"), payloadHash: text("payload_hash"), errore: text("errore"),
 });
+
+// --- Controllo ore (specifiche 16, punti 30-35): eccezioni come DATI, per nome (come sull'HUB; l'ordine nome/cognome non conta) ---
+// tipo: orario (parametri: oreGiorno o ore per giorno lun..ven) | presa_servizio (valida_dal = primo giorno in servizio)
+//       | nome_escluso (aspettativa, altra BU, uscito) | ferie_su_hub | remoto (patrono non vale).
+// Per nome_escluso, ferie_su_hub e remoto, valida_dal e valida_fino limitano il periodo: scaduta, l'eccezione non si applica più.
+export const oreEccezione = pgTable("ore_eccezione", {
+  id: serial("id").primaryKey(),
+  tipo: text("tipo").notNull(), nome: text("nome").notNull(),
+  parametriJson: jsonb("parametri_json").notNull().default({}),
+  motivo: text("motivo").notNull(), approvataDa: text("approvata_da").notNull(),
+  validaDal: date("valida_dal"), validaFino: date("valida_fino"),
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Anomalie del controllo ore: tabella separata da `anomalia` perché riguardano persone, non contratti: visibili solo
+// all'amministratore e mai con i nomi su Slack (specifiche 16, punto 32). Una riga per codice, persona e mese, con i giorni dentro.
+export const oreAnomalia = pgTable("ore_anomalia", {
+  id: serial("id").primaryKey(),
+  fingerprint: text("fingerprint").notNull(), // codice|nome normalizzato|aaaa-mm
+  codice: text("codice").notNull(), nome: text("nome").notNull(),
+  anno: integer("anno").notNull(), mese: integer("mese").notNull(),
+  giorni: jsonb("giorni").notNull().default([]), // [{ g: "gg/mm/aaaa", ore: number }]
+  oreTotali: numeric("ore_totali", { precision: 8, scale: 2 }).notNull().default("0"),
+  stato: text("stato").notNull().default("aperta"), // aperta | risolta
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
+  ultimaVista: timestamp("ultima_vista", { withTimezone: true }).defaultNow().notNull(),
+  risoltaIl: timestamp("risolta_il", { withTimezone: true }),
+  notificataIl: timestamp("notificata_il", { withTimezone: true }),
+}, (t) => [uniqueIndex("ore_anomalia_fingerprint_uq").on(t.fingerprint)]);
