@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { modificaCella, runControllo, snapshotScadenzario, variazione } from "@/db/schema";
 import Barra from "../Barra";
@@ -12,100 +12,152 @@ function righeDi(cella: string): [number, number] {
 }
 const mostra = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
 const ora = (d: Date | null) => (d ? d.toLocaleString("it-IT", { timeZone: "Europe/Rome" }) : "—");
+const num = (n: number) => n.toLocaleString("it-IT");
 // Giorno (ora di Roma) di una colonna timestamp, per confrontarlo con le date dei filtri.
 const giorno = (col: unknown) => sql`(${col} at time zone 'Europe/Rome')::date`;
 
-type Filtri = { dal?: string; al?: string; foglio?: string; tipo?: string; q?: string; esito?: string; origine?: string; righe?: string };
+type P = { vista?: string; dal?: string; al?: string; foglio?: string; tipo?: string; q?: string; esito?: string; origine?: string; ord?: string; dir?: string; pag?: string; dim?: string };
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-const PASSO = 100;
+const DIMENSIONI = [25, 50, 100, 200, 500];
 
-export default async function Storico({ searchParams }: { searchParams: Promise<Filtri> }) {
+const COL_DIFF = { data: snapshotScadenzario.lettoIl, foglio: variazione.foglio, voce: variazione.chiave, tipo: variazione.tipo } as const;
+const COL_RUN = { data: runControllo.avviatoIl, origine: runControllo.origine, esito: runControllo.esito, variazioni: runControllo.nVariazioni } as const;
+
+export default async function Storico({ searchParams }: { searchParams: Promise<P> }) {
   const f = await searchParams;
+  const vista = f.vista === "controlli" ? "controlli" : "differenze";
   const dal = f.dal && ISO.test(f.dal) ? f.dal : undefined, al = f.al && ISO.test(f.al) ? f.al : undefined;
-  const limite = Math.min(Math.max(Number(f.righe) || PASSO, PASSO), 1000);
+  const q = f.q?.trim() || undefined;
+  const dim = DIMENSIONI.includes(Number(f.dim)) ? Number(f.dim) : 100;
   const db = getDb();
 
-  // Controlli: dal più recente; filtri su periodo, esito e origine.
-  const condRun = [
-    dal ? sql`${giorno(runControllo.avviatoIl)} >= ${dal}::date` : undefined,
-    al ? sql`${giorno(runControllo.avviatoIl)} <= ${al}::date` : undefined,
-    f.esito ? eq(runControllo.esito, f.esito) : undefined,
-    f.origine ? eq(runControllo.origine, f.origine) : undefined,
-  ].filter(Boolean);
-  // Differenze: dalla lettura più recente (data e ora della lettura dello scadenzario), poi per id.
-  const q = f.q?.trim();
-  const condVar = [
-    dal ? sql`${giorno(snapshotScadenzario.lettoIl)} >= ${dal}::date` : undefined,
-    al ? sql`${giorno(snapshotScadenzario.lettoIl)} <= ${al}::date` : undefined,
-    f.foglio ? eq(variazione.foglio, f.foglio) : undefined,
-    f.tipo ? eq(variazione.tipo, f.tipo) : undefined,
-    q ? or(ilike(variazione.chiave, `%${q}%`), sql`${variazione.campi}::text ilike ${"%" + q + "%"}`) : undefined,
-  ].filter(Boolean);
+  // Ordinamento: colonna e verso dai parametri; di default la data, dal più recente.
+  const colonne = vista === "controlli" ? COL_RUN : COL_DIFF;
+  const ord = (f.ord && f.ord in colonne ? f.ord : "data") as keyof typeof colonne;
+  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : ord === "data" || ord === "variazioni" ? "desc" : "asc";
+  const verso = dir === "asc" ? asc : desc;
 
-  const [runs, vars, fogli, esiti, origini] = await Promise.all([
-    db.select().from(runControllo).where(and(...condRun)).orderBy(desc(runControllo.avviatoIl), desc(runControllo.id)).limit(limite),
-    db.select({ v: variazione, lettoIl: snapshotScadenzario.lettoIl }).from(variazione).innerJoin(snapshotScadenzario, eq(variazione.snapshotId, snapshotScadenzario.id))
-      .where(and(...condVar)).orderBy(desc(snapshotScadenzario.lettoIl), desc(variazione.id)).limit(limite),
-    db.selectDistinct({ x: variazione.foglio }).from(variazione),
-    db.selectDistinct({ x: runControllo.esito }).from(runControllo),
-    db.selectDistinct({ x: runControllo.origine }).from(runControllo),
+  // Link che conserva tutti i filtri e cambia solo ciò che si chiede (cambiare filtro riporta a pagina 1).
+  const link = (o: Partial<P>) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries({ ...f, ...o, ...("pag" in o ? {} : { pag: undefined }) })) if (v) p.set(k, v);
+    return `/storico?${p}`;
+  };
+
+  let righe: React.ReactNode, totale: number, tutte: number, intestazioni: [string, string | null][];
+  if (vista === "controlli") {
+    const cond = and(
+      dal ? sql`${giorno(runControllo.avviatoIl)} >= ${dal}::date` : undefined, al ? sql`${giorno(runControllo.avviatoIl)} <= ${al}::date` : undefined,
+      f.esito ? eq(runControllo.esito, f.esito) : undefined, f.origine ? eq(runControllo.origine, f.origine) : undefined,
+    );
+    const [[{ n }], [{ n: t }]] = await Promise.all([
+      db.select({ n: sql<number>`count(*)::int` }).from(runControllo).where(cond), db.select({ n: sql<number>`count(*)::int` }).from(runControllo),
+    ]);
+    totale = n; tutte = t;
+    const pagina = Math.min(Math.max(Number(f.pag) || 1, 1), Math.max(Math.ceil(n / dim), 1));
+    const rs = await db.select().from(runControllo).where(cond).orderBy(verso(colonne[ord]), desc(runControllo.id)).limit(dim).offset((pagina - 1) * dim);
+    intestazioni = [["Avviato", "data"], ["Origine", "origine"], ["Esito", "esito"], ["Variazioni", "variazioni"], ["Errore", null]];
+    righe = rs.map((r) => (
+      <tr key={r.id}><td style={cella}>{ora(r.avviatoIl)}</td><td style={cella}>{r.origine}</td><td style={cella}>{r.esito}</td><td style={cella}>{r.nVariazioni ?? 0}</td><td style={cella}>{r.errore ?? ""}</td></tr>
+    ));
+  } else {
+    const cond = and(
+      dal ? sql`${giorno(snapshotScadenzario.lettoIl)} >= ${dal}::date` : undefined, al ? sql`${giorno(snapshotScadenzario.lettoIl)} <= ${al}::date` : undefined,
+      f.foglio ? eq(variazione.foglio, f.foglio) : undefined, f.tipo ? eq(variazione.tipo, f.tipo) : undefined,
+      q ? or(ilike(variazione.chiave, `%${q}%`), sql`${variazione.campi}::text ilike ${"%" + q + "%"}`) : undefined,
+    );
+    const dalla = () => db.select({ n: sql<number>`count(*)::int` }).from(variazione).innerJoin(snapshotScadenzario, eq(variazione.snapshotId, snapshotScadenzario.id));
+    const [[{ n }], [{ n: t }]] = await Promise.all([dalla().where(cond), dalla()]);
+    totale = n; tutte = t;
+    const pagina = Math.min(Math.max(Number(f.pag) || 1, 1), Math.max(Math.ceil(n / dim), 1));
+    const vs = await db.select({ v: variazione, lettoIl: snapshotScadenzario.lettoIl }).from(variazione).innerJoin(snapshotScadenzario, eq(variazione.snapshotId, snapshotScadenzario.id))
+      .where(cond).orderBy(verso(colonne[ord]), desc(variazione.id)).limit(dim).offset((pagina - 1) * dim);
+    // Chi ha modificato: ultima modifica Apps Script su quella riga NON successiva alla lettura che ha visto la differenza.
+    const fogliVar = [...new Set(vs.map((x) => x.v.foglio))];
+    const edit = fogliVar.length ? await db.select().from(modificaCella).where(inArray(modificaCella.foglio, fogliVar)).orderBy(desc(modificaCella.ricevutaIl)).limit(5000) : [];
+    const chiDi = (foglio: string, riga: number | null, lettoIl: Date) =>
+      riga == null ? undefined : edit.find((e) => e.foglio === foglio && righeDi(e.cella)[0] <= riga && riga <= righeDi(e.cella)[1] && (e.quando ?? e.ricevutaIl) <= lettoIl);
+    intestazioni = [["Letto il", "data"], ["Foglio", "foglio"], ["Voce", "voce"], ["Tipo", "tipo"], ["Campo", null], ["Prima", null], ["Dopo", null], ["Chi (Apps Script)", null]];
+    righe = vs.flatMap(({ v, lettoIl }) => {
+      const campi = (v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? [{ campo: "", prima: null, dopo: null }];
+      const chi = chiDi(v.foglio, v.rigaFoglio, lettoIl);
+      return campi.map((c, i) => (
+        <tr key={`${v.id}-${i}`}><td style={{ ...cella, whiteSpace: "nowrap" }}>{ora(lettoIl)}</td><td style={cella}>{v.foglio}</td><td style={cella}>{v.chiave}</td><td style={cella}>{v.tipo}</td>
+          <td style={cella}>{c.campo}</td><td style={cella}>{mostra(c.prima)}</td><td style={cella}>{mostra(c.dopo)}</td>
+          <td style={cella}>{chi ? `${chi.utente ?? "?"} · ${chi.cella}${chi.vecchioValore != null ? ` · era "${chi.vecchioValore}"` : ""}` : "—"}</td></tr>
+      ));
+    });
+  }
+
+  const pagine = Math.max(Math.ceil(totale / dim), 1);
+  const pagina = Math.min(Math.max(Number(f.pag) || 1, 1), pagine);
+  const da = totale ? (pagina - 1) * dim + 1 : 0, a = Math.min(pagina * dim, totale);
+  const filtriAttivi = Boolean(dal || al || q || f.foglio || f.tipo || f.esito || f.origine);
+  const [fogli, esiti, origini] = await Promise.all([
+    db.selectDistinct({ x: variazione.foglio }).from(variazione), db.selectDistinct({ x: runControllo.esito }).from(runControllo), db.selectDistinct({ x: runControllo.origine }).from(runControllo),
   ]);
-  // Chi ha modificato: ultima modifica Apps Script su quella riga NON successiva alla lettura che ha visto la differenza.
-  const fogliVar = [...new Set(vars.map((x) => x.v.foglio))];
-  const edit = fogliVar.length ? await db.select().from(modificaCella).where(inArray(modificaCella.foglio, fogliVar)).orderBy(desc(modificaCella.ricevutaIl)).limit(2000) : [];
-  const chiDi = (foglio: string, riga: number | null, lettoIl: Date) =>
-    riga == null ? undefined : edit.find((e) => e.foglio === foglio && righeDi(e.cella)[0] <= riga && riga <= righeDi(e.cella)[1] && (e.quando ?? e.ricevutaIl) <= lettoIl);
-
-  const cella: React.CSSProperties = { padding: "4px 8px", borderBottom: "1px solid var(--color-border-line)", textAlign: "left", fontSize: 13 };
-  const muto: React.CSSProperties = { color: "var(--color-fg-muted)" };
-  const filtriAttivi = Boolean(dal || al || f.foglio || f.tipo || q || f.esito || f.origine);
-  const altri = (() => { const p = new URLSearchParams(Object.entries(f).filter(([k, v]) => v && k !== "righe") as [string, string][]); p.set("righe", String(limite + PASSO)); return `?${p}`; })();
   const opzioni = (xs: { x: string }[]) => xs.map((o) => o.x).sort().map((x) => <option key={x} value={x}>{x}</option>);
+  const sezione = vista === "controlli" ? "controlli" : "differenze";
 
   return (
     <>
     <Barra corrente="/storico" />
     <main style={{ maxWidth: 1180, margin: "0 auto", padding: 16, fontFamily: "var(--font-anthropic-sans)", color: "var(--color-fg)" }}>
-      <h1 style={{ fontWeight: 400 }}>Import e storico</h1>
-      <p style={{ ...muto, marginTop: 0 }}>Dal più recente al più vecchio. Le date sono quelle della lettura dello scadenzario (ora di Roma).</p>
+      <h1 style={{ fontWeight: 400, marginBottom: 4 }}>Import e storico</h1>
+      <p style={{ ...muto, marginTop: 0 }}>Le date sono quelle della lettura dello scadenzario (ora di Roma). Clicca sull&apos;intestazione di una colonna per ordinare.</p>
+
+      <nav aria-label="Vista" style={{ display: "flex", gap: 16, margin: "8px 0" }}>
+        {([["differenze", "Differenze nello scadenzario"], ["controlli", "Controlli eseguiti"]] as const).map(([v, et]) => (
+          <a key={v} href={`/storico?vista=${v}`} aria-current={v === vista ? "page" : undefined} style={{ fontWeight: v === vista ? 700 : 400, textDecoration: v === vista ? "underline" : "none", textUnderlineOffset: 6, color: "var(--color-fg)" }}>{et}</a>
+        ))}
+      </nav>
+
       <form method="get" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end", margin: "12px 0" }}>
+        <input type="hidden" name="vista" value={vista} />
         <label>Dal<br /><input type="date" name="dal" defaultValue={dal} className="btn" /></label>
         <label>Al<br /><input type="date" name="al" defaultValue={al} className="btn" /></label>
-        <label>Foglio<br /><select name="foglio" defaultValue={f.foglio ?? ""} className="btn"><option value="">Tutti</option>{opzioni(fogli)}</select></label>
-        <label>Tipo di differenza<br /><select name="tipo" defaultValue={f.tipo ?? ""} className="btn"><option value="">Tutti</option>{["nuova", "modificata", "eliminata"].map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
-        <label>Cerca (voce o campo)<br /><input name="q" defaultValue={q} className="btn" placeholder="es. SardegnaCAT" /></label>
-        <label>Esito controllo<br /><select name="esito" defaultValue={f.esito ?? ""} className="btn"><option value="">Tutti</option>{opzioni(esiti)}</select></label>
-        <label>Origine<br /><select name="origine" defaultValue={f.origine ?? ""} className="btn"><option value="">Tutte</option>{opzioni(origini)}</select></label>
+        {vista === "differenze" ? (<>
+          <label>Foglio<br /><select name="foglio" defaultValue={f.foglio ?? ""} className="btn"><option value="">Tutti</option>{opzioni(fogli)}</select></label>
+          <label>Tipo<br /><select name="tipo" defaultValue={f.tipo ?? ""} className="btn"><option value="">Tutti</option>{["nuova", "modificata", "eliminata"].map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
+          <label>Cerca (voce o campo)<br /><input name="q" defaultValue={q} className="btn" placeholder="es. SardegnaCAT" /></label>
+        </>) : (<>
+          <label>Esito<br /><select name="esito" defaultValue={f.esito ?? ""} className="btn"><option value="">Tutti</option>{opzioni(esiti)}</select></label>
+          <label>Origine<br /><select name="origine" defaultValue={f.origine ?? ""} className="btn"><option value="">Tutte</option>{opzioni(origini)}</select></label>
+        </>)}
+        <label>Righe per pagina<br /><select name="dim" defaultValue={String(dim)} className="btn">{DIMENSIONI.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
+        {f.ord && <input type="hidden" name="ord" value={f.ord} />}{f.dir && <input type="hidden" name="dir" value={f.dir} />}
         <button type="submit" className="btn primary">Filtra</button>
-        {filtriAttivi && <a href="/storico" className="btn">Azzera</a>}
+        {filtriAttivi && <a href={`/storico?vista=${vista}`} className="btn">Azzera filtri</a>}
       </form>
 
-      <h2>Controlli ({runs.length}{runs.length === limite ? "+" : ""})</h2>
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead><tr>{["Avviato", "Origine", "Esito", "Variazioni", "Errore"].map((h) => <th key={h} scope="col" style={cella}>{h}</th>)}</tr></thead>
-        <tbody>{runs.map((r) => (
-          <tr key={r.id}><td style={cella}>{ora(r.avviatoIl)}</td><td style={cella}>{r.origine}</td><td style={cella}>{r.esito}</td>
-            <td style={cella}>{r.nVariazioni ?? 0}</td><td style={cella}>{r.errore ?? ""}</td></tr>
-        ))}</tbody>
-      </table>
-      {runs.length === 0 && <p style={muto}>Nessun controllo con questi filtri.</p>}
+      <p role="status" style={{ margin: "4px 0 8px" }}>
+        {totale === 0
+          ? (filtriAttivi ? `Nessuna riga con questi filtri (su ${num(tutte)} ${sezione} in tutto).` : `Nessun dato registrato per ora: ${sezione} vuote.`)
+          : <>Righe <strong>{num(da)}-{num(a)}</strong> di <strong>{num(totale)}</strong>{filtriAttivi ? ` con i filtri (su ${num(tutte)} in tutto)` : ""}.{vista === "differenze" ? " Una differenza può avere più campi: ogni campo è una riga." : ""}</>}
+      </p>
 
-      <h2>Differenze ({vars.length}{vars.length === limite ? "+" : ""})</h2>
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead><tr>{["Letto il", "Foglio", "Voce", "Tipo", "Campo", "Prima", "Dopo", "Chi (Apps Script)"].map((h) => <th key={h} scope="col" style={cella}>{h}</th>)}</tr></thead>
-        <tbody>{vars.flatMap(({ v, lettoIl }) => {
-          const campi = (v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? [{ campo: "", prima: null, dopo: null }];
-          const chi = chiDi(v.foglio, v.rigaFoglio, lettoIl);
-          return campi.map((c, i) => (
-            <tr key={`${v.id}-${i}`}><td style={{ ...cella, whiteSpace: "nowrap" }}>{i === 0 ? ora(lettoIl) : ""}</td><td style={cella}>{v.foglio}</td><td style={cella}>{v.chiave}</td><td style={cella}>{v.tipo}</td>
-              <td style={cella}>{c.campo}</td><td style={cella}>{mostra(c.prima)}</td><td style={cella}>{mostra(c.dopo)}</td>
-              <td style={cella}>{chi ? `${chi.utente ?? "?"} · ${chi.cella}${chi.vecchioValore != null ? ` · era "${chi.vecchioValore}"` : ""}` : "—"}</td></tr>
-          ));
-        })}</tbody>
-      </table>
-      {vars.length === 0 && <p style={muto}>{filtriAttivi ? "Nessuna differenza con questi filtri." : "Nessuna differenza registrata."}</p>}
-      {(runs.length === limite || vars.length === limite) && limite < 1000 && <p><a href={altri} className="btn">Mostra altre {PASSO} righe</a></p>}
+      {totale > 0 && (
+        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <thead><tr>{intestazioni.map(([et, col]) => col ? (
+            <th key={et} scope="col" style={cella} aria-sort={col === ord ? (dir === "asc" ? "ascending" : "descending") : "none"}>
+              <a href={link({ ord: col, dir: col === ord && dir === "desc" ? "asc" : col === ord ? "desc" : col === "data" || col === "variazioni" ? "desc" : "asc" })} style={{ color: "inherit" }}>{et}{col === ord ? (dir === "asc" ? " ▲" : " ▼") : ""}</a>
+            </th>
+          ) : <th key={et} scope="col" style={cella}>{et}</th>)}</tr></thead>
+          <tbody>{righe}</tbody>
+        </table>
+      )}
+
+      {pagine > 1 && (
+        <nav aria-label="Pagine" style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}>
+          {pagina > 1 ? <><a className="btn" href={link({ pag: "1" })}>« Prima</a><a className="btn" href={link({ pag: String(pagina - 1) })}>‹ Precedente</a></> : null}
+          <span>Pagina {num(pagina)} di {num(pagine)}</span>
+          {pagina < pagine ? <><a className="btn" href={link({ pag: String(pagina + 1) })}>Successiva ›</a><a className="btn" href={link({ pag: String(pagine) })}>Ultima »</a></> : null}
+        </nav>
+      )}
     </main>
   </>
   );
 }
+
+const cella: React.CSSProperties = { padding: "4px 8px", borderBottom: "1px solid var(--color-border-line)", textAlign: "left", fontSize: 13 };
+const muto: React.CSSProperties = { color: "var(--color-fg-muted)" };
