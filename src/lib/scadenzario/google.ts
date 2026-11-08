@@ -55,3 +55,14 @@ export async function leggiFogli(id: string, fogli: string[]): Promise<Record<st
   );
   return Object.fromEntries(fogli.map((f, i) => [f, j.valueRanges[i]?.values ?? []]));
 }
+
+// gid (identificativo numerico) dei fogli, per costruire i link che aprono il foglio sulla riga giusta.
+// Memorizzati per la vita del processo: cambiano solo se un foglio viene ricreato.
+let gidCache: Record<string, number> | null = null;
+export async function gidFogli(id: string): Promise<Record<string, number>> {
+  if (gidCache) return gidCache;
+  const j = await get<{ sheets: { properties: { title: string; sheetId: number } }[] }>(
+    `https://sheets.googleapis.com/v4/spreadsheets/${id}?fields=sheets.properties(title,sheetId)`,
+  );
+  return (gidCache = Object.fromEntries(j.sheets.map((s) => [s.properties.title, s.properties.sheetId])));
+}
