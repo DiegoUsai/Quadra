@@ -28,6 +28,7 @@
     calc: (id, def) => { calcs[id] = def; },
     data: id => (calcs[id] ? resolve(id) : load(id)),
     onData: fn => { listeners.push(fn); fn(); },
+    stati: () => Object.values(store).map(x => x.status),
     setLink: name => { history.replaceState(null, '', '#' + name); },
     colors: ['#3d7ea6', '#e0a458', '#6dbba4', '#b56576', '#8e7dbe', '#5c6b73', '#c97b63', '#9aa5b1'],
   };

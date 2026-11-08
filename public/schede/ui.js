@@ -258,7 +258,8 @@
   }
 
   // heatmap: scala divergente con il neutro chiaro al 100%
-  const heatCol = d3.scaleLinear().domain([0.6, 1, 1.4]).range(['#e6836b', '#f1ede4', '#6dbba4']).clamp(true);
+  const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const heatCol = d3.scaleLinear().domain([0.6, 1, 1.4]).range([tok('--scala-bassa'), tok('--scala-neutra'), tok('--scala-alta')]).clamp(true);
   function heat(host, corner, rowLabels, colLabels, cell) {
     host.textContent = '';
     const lg = document.createElement('div'); lg.className = 'legend';
@@ -425,7 +426,7 @@
   function goDrill(anno, gr) {
     if (![...selDA.options].some(o => o.value === String(anno))) return;
     selDA.value = String(anno); selDG.value = gr; draw();
-    $('card-drill').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('card-drill').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   }
 
   function draw() {
@@ -532,6 +533,16 @@
   }
   function bars() { [...root.querySelectorAll('table[data-source]'), $('heat'), $('heat-trim')].forEach(ensureBar); }
   [selN, selP, selDA, selDG].forEach(s => s.addEventListener('change', draw));
+  // stato dei dati: dice cosa succede quando un grafico resta vuoto
+  const banner = document.createElement('div'); banner.className = 'stato'; banner.setAttribute('role', 'status'); banner.hidden = true;
+  root.insertBefore(banner, $('tabs'));
+  dash.onData(() => {
+    const st = dash.stati(), err = st.includes('error'), load = st.includes('loading');
+    banner.hidden = !err && !load; banner.classList.toggle('err', err);
+    banner.setAttribute('role', err ? 'alert' : 'status');
+    banner.textContent = err ? 'Alcuni dati non si sono caricati, quindi alcuni grafici e tabelle restano vuoti. ' : load ? 'Caricamento dei dati in corso…' : '';
+    if (err) { const b = document.createElement('button'); b.type = 'button'; b.className = 'xbtn'; b.textContent = 'Ricarica la pagina'; b.onclick = () => location.reload(); banner.appendChild(b); }
+  });
   dash.onData(draw);
 
   // fasi di progetto: coefficienti con intervallo di confidenza
@@ -561,7 +572,7 @@
   }
 
   // mappa delle fasi: una cella per riga e mese, con il budget in k€
-  const FCOL = { 'Start-up': '#6dbba4', 'In corsa': '#f1ede4', 'In chiusura': '#e6836b' };
+  const FCOL = { 'Start-up': tok('--scala-alta'), 'In corsa': tok('--scala-neutra'), 'In chiusura': tok('--scala-bassa') };
   function phasemap(host, X) {
     host.textContent = '';
     legend(host, Object.keys(FCOL).map(k => ({ name: k, color: FCOL[k] })));
@@ -577,7 +588,7 @@
       for (let mm = 1; mm <= 12; mm++) {
         const td = tr.insertCell(), r = X.find(x => x.riga === n && +x.mese === mm);
         if (!r) { td.textContent = '—'; continue; }
-        td.textContent = kfmt(r.budget); td.style.background = FCOL[r.fase] || '#f1ede4'; td.style.color = '#1f1f1f';
+        td.textContent = kfmt(r.budget); td.style.background = FCOL[r.fase] || tok('--scala-neutra'); td.style.color = '#1f1f1f';
         ex.rows.push([n, MESI[mm - 1], r.fase, String(Math.round(r.budget)), xnum(r.coef), String(Math.round(r.calibrato_mis)), String(Math.round(r.calibrato_prud))]);
         kbCell(td, tp, () => (head(n + ' · ' + MESI[mm - 1]) + row(FCOL[r.fase], 'Fase', r.fase) + '<div>Budget: ' + eur(r.budget) + '</div><div>Coefficiente: ' + dec2(r.coef) + '</div><div>Calibrato misurato: ' + eur(r.calibrato_mis) + '</div><div>Calibrato prudenziale: ' + eur(r.calibrato_prud) + '</div>'));        td.addEventListener('mouseleave', tp.hide);
       }

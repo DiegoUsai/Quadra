@@ -1,0 +1,11 @@
+body { margin: 0; font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-body); line-height: 1.5; }
+.btn { font: inherit; font-size: var(--cds-font-size-caption); color: var(--color-fg); background: none; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: .25rem .75rem; min-height: 2rem; cursor: pointer; }
+.btn:hover { border-color: var(--cds-border); background: var(--color-panel); }
+.btn:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.btn.primary { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); font-size: var(--cds-font-size-body); padding: .5rem 1rem; min-height: 2.75rem; }
+.btn.primary:hover { opacity: .88; background: var(--color-fg); }
+.accesso { max-width: 22rem; margin: 20vh auto 0; padding: var(--cds-pad-lg); }
+.accesso h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0 0 .25rem; }
+.accesso p { color: var(--color-fg-muted); margin: 0 0 var(--cds-gap-md); }
+.topbar { display: flex; justify-content: flex-end; align-items: center; gap: .75rem; padding: .5rem var(--cds-pad-lg); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+@media (prefers-reduced-motion: no-preference) { .btn { transition: background-color .15s ease-out, border-color .15s ease-out, opacity .15s ease-out; } }
