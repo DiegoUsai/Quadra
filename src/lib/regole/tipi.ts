@@ -9,12 +9,16 @@ export type RigaBudget = { progetto: string; anno: number; mese: number; importo
 // Variazione di una cella tra due snapshot, con data di lettura (regola D04).
 export type VariazioneCella = { foglio: string; chiave: string; campo: string; prima: unknown; dopo: unknown; quando: string };
 
+// Valore ammesso del foglio Lookup (una cella di una colonna di valori); `ripetuto` se compare più volte nella stessa colonna.
+export type RigaLookup = { campo: string; valore: string; rigaFoglio: number | null; ripetuto: boolean };
+
 export type Contesto = {
   oggi: string; // AAAA-MM-GG
   contratti: Contratto[];
   movimenti: Movimento[];
   budget?: RigaBudget[];
   variazioni?: VariazioneCella[];
+  lookup?: RigaLookup[];
 };
 
 export type Severita = "bloccante" | "alta" | "media" | "info";

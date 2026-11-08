@@ -25,6 +25,8 @@ function dove(a: Riga): { principale: string; dettaglio: string } {
   const v = (a.valoriJson ?? {}) as Record<string, unknown>;
   const mese = a.periodoMese ? `${MESI[a.periodoMese - 1]} ${a.periodoAnno}` : a.periodoAnno ? String(a.periodoAnno) : "";
   if (a.entitaTipo === "movimento") return { principale: String(v.contratto ?? a.entitaChiave.split("|")[1] ?? a.entitaChiave), dettaglio: ["riga di Costi/Ricavi", mese].filter(Boolean).join(" · ") };
+  if (v.contratto && a.regola[0] !== "D") return { principale: String(v.contratto), dettaglio: [a.foglio === "Costi/Ricavi" ? "righe di Costi/Ricavi" : "", mese].filter(Boolean).join(" · ") };
+  if (a.regola === "H02" || a.regola === "H03" || a.regola === "H07") return { principale: String(v.valore ?? a.entitaChiave.split("|").pop()), dettaglio: a.regola === "H07" ? "foglio Lookup" : "" };
   if (a.entitaChiave.includes("|")) { const [p, anno] = a.entitaChiave.split("|"); return { principale: `Progetto ${p}`, dettaglio: anno }; }
   if (a.regola.startsWith("D0") && a.regola !== "D05") return { principale: `Progetto ${a.entitaChiave}`, dettaglio: mese };
   return { principale: a.entitaChiave.replace(/#\d+$/, ""), dettaglio: mese };
@@ -78,7 +80,7 @@ export default async function Anomalie({ searchParams }: { searchParams: Promise
               {["da_trattare", ...STATI, "tutte"].map((v) => <option key={v} value={v}>{nome(v)}</option>)}</select></label>
           <label style={{ fontSize: 12, display: "grid", gap: 2 }}>Tipo di anomalia
             <select name="regola" defaultValue={f.regola ?? ""} className="btn" style={{ maxWidth: 280 }}><option value="">Tutte</option>
-              {["A", "B", "C", "D"].map((g) => <option key={g} value={g}>Tutto il gruppo {g}</option>)}
+              {["A", "B", "C", "D", "H", "K"].map((g) => <option key={g} value={g}>Tutto il gruppo {g}</option>)}
               {REGOLE.map((r) => <option key={r.codice} value={r.codice}>{r.nome} ({r.codice})</option>)}</select></label>
           <label style={{ fontSize: 12, display: "grid", gap: 2 }}>PM
             <select name="pm" defaultValue={f.pm ?? ""} className="btn"><option value="">Tutti</option>

@@ -27,7 +27,8 @@ export async function contestoCorrente(oggi: string): Promise<Contesto> {
   const vars = await db.select({ chiave: variazione.chiave, foglio: variazione.foglio, campi: variazione.campi, quando: snapshotScadenzario.lettoIl })
     .from(variazione).innerJoin(snapshotScadenzario, eq(variazione.snapshotId, snapshotScadenzario.id)).where(and(eq(variazione.tipo, "modificata"), gte(snapshotScadenzario.lettoIl, da)));
   const variazioni = vars.flatMap((v) => ((v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? []).map((c) => ({ foglio: v.foglio, chiave: v.chiave, campo: c.campo, prima: c.prima, dopo: c.dopo, quando: v.quando.toISOString() })));
-  return { oggi, contratti: cv("Contratti Attivi"), movimenti: cv("Costi/Ricavi"), budget, variazioni };
+  const lookup = righe.filter((r) => r.foglio === "Lookup").map((r) => ({ campo: String((r.dati as Dati).campo), valore: String((r.dati as Dati).valore), rigaFoglio: r.rigaFoglio, ripetuto: /#d+$/.test(r.chiave) }));
+  return { oggi, contratti: cv("Contratti Attivi"), movimenti: cv("Costi/Ricavi"), budget, variazioni, lookup };
 }
 
 // Un asterisco finale vale come jolly: "C*" copre tutte le regole del gruppo C, "LOTTO_*" tutti i contratti con quel prefisso.
