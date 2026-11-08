@@ -1,5 +1,5 @@
 import type { Contratto, DefinizioneRegola } from "./tipi";
-import { daContratto, daMovimento, idDi, isData, meseDi, num, ricaviPer, s } from "./util";
+import { daContratto, daMovimento, idDi, isData, meseDi, num, ricaviPer, s, unificati } from "./util";
 
 // Gruppo B: coerenza economica del contratto (specifiche 7.2). Metrica: lavorato.
 const lavAnnuali = (c: Contratto) => Object.keys(c.d).filter((k) => /^lav_\d{4}$/.test(k) && k !== "lav_2021").map((k) => num(c.d[k]) ?? 0);
@@ -31,7 +31,7 @@ export const REGOLE_B: DefinizioneRegola[] = [
     descrizione: "Ricavi in mesi precedenti alla data inizio o successivi alla data fine del contratto.",
     esegui: (ctx) => {
       const ric = ricaviPer(ctx.movimenti);
-      return ctx.contratti.filter(attiviRicavi).flatMap((c) => {
+      return unificati(ctx.contratti).filter(attiviRicavi).flatMap((c) => {
         const ini = isData(c.d.data_inizio) ? c.d.data_inizio.slice(0, 7) : null, fin = isData(c.d.data_fine) ? c.d.data_fine.slice(0, 7) : null;
         const fuori = (ric.get(idDi(c)) ?? []).filter((m) => isData(m.d.anno_mese) && (num(m.d.importo) ?? 0) !== 0
           && ((ini && (m.d.anno_mese as string).slice(0, 7) < ini) || (fin && (m.d.anno_mese as string).slice(0, 7) > fin)));

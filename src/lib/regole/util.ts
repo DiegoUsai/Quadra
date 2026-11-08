@@ -32,3 +32,18 @@ export function ricaviPer(movimenti: Movimento[]): Map<string, Movimento[]> {
   return out;
 }
 export type { Dati };
+
+// Un contratto può essere spezzato in più ordini: più righe con lo stesso Id Contratto e lo stesso Contratto Padre.
+// Ricavi e canoni stanno a livello di Id, quindi per le regole che li confrontano con le date si usa il contratto
+// unificato: finestra dal primo inizio all'ultima fine, attivo se almeno un ordine è attivo.
+export function unificati(contratti: Contratto[]): Contratto[] {
+  const gruppi = new Map<string, Contratto[]>();
+  for (const c of contratti) (gruppi.get(idDi(c)) ?? gruppi.set(idDi(c), []).get(idDi(c))!).push(c);
+  return [...gruppi].map(([id, righe]) => {
+    if (righe.length === 1) return righe[0];
+    const date = (k: string) => righe.map((r) => r.d[k]).filter(isData).sort();
+    const inizi = date("data_inizio"), fini = date("data_fine");
+    const stato = righe.some((r) => s(r.d.stato) === "Contrattualizzato") ? "Contrattualizzato" : s(righe[0].d.stato) || null;
+    return { chiave: id, rigaFoglio: righe[0].rigaFoglio, d: { ...righe[0].d, data_inizio: inizi[0] ?? null, data_fine: fini[fini.length - 1] ?? null, stato } };
+  });
+}

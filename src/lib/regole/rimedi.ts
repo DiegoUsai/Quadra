@@ -8,7 +8,7 @@ const RIMEDI: Record<string, string> = {
   A05: "Inserisci l'importo complessivo del contratto. Se è a zero perché non è ancora definitivo, valuta lo stato.",
   A06: "Informativa: la durata in mesi non coincide con le date. Aggiorna la durata o le date se serve; non richiede azione urgente.",
   A07: "I valori di questa riga sono scivolati di colonna: rimettili nelle colonne giuste.",
-  A08: "Lo stesso Id Contratto compare su più righe. Rinomina o elimina il doppione: ogni contratto deve avere un Id unico.",
+  A08: "Più righe con lo stesso Id Contratto sono ammesse solo se sono ordini dello stesso contratto: indica lo stesso Contratto Padre su tutte le righe. Se invece è un doppione, rinominalo o eliminalo.",
   A09: "Compila l'Id Progetto del contratto (deve esistere nel foglio Lookup).",
   A10: "Allinea stato e data fine: se il contratto è proseguito registra la proroga con la nuova data fine; se è finito passalo a Chiuso.",
   A11: "Usa una delle linee di business ammesse (Documentale, Socio-sanitario, Altro, SAP, Licenze, Giustizia Digitale).",

@@ -1,5 +1,5 @@
 import type { Contratto, DefinizioneRegola, Grezza, Movimento } from "./tipi";
-import { daContratto, idDi, isData, num, s } from "./util";
+import { daContratto, idDi, isData, num, s, unificati } from "./util";
 
 // Gruppo C: canoni (specifiche 7.3). Principio: un canone è invariante per tutta la durata del contratto.
 // Si lavora sui ricavi di classe Canone sommati per contratto e mese.
@@ -37,7 +37,7 @@ const arr = (v: number) => Math.round(v * 100) / 100;
 function perCanone(ctx: { contratti: Contratto[]; movimenti: Movimento[] }, fn: (c: Contratto, mesi: Map<string, number>, prog: string | undefined) => Grezza[]): Grezza[] {
   const canoni = canoniPer(ctx.movimenti), prog = progettoDi(ctx.movimenti), out: Grezza[] = [];
   const visti = new Set<string>();
-  for (const c of ctx.contratti) {
+  for (const c of unificati(ctx.contratti)) {
     const id = idDi(c);
     if (visti.has(id) || !canoni.has(id)) continue;
     visti.add(id);
