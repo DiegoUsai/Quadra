@@ -1,5 +1,5 @@
 import type { DefinizioneRegola, Grezza } from "./tipi";
-import { attivo, daContratto, idDi, isData, num, parti, s } from "./util";
+import { attivo, daContratto, idDi, isData, num, parti, s, unificati } from "./util";
 
 // Gruppo D: budget contro consuntivo (specifiche 7.4). Il confronto è a livello di Id Progetto (5.4).
 // D03 (modifica retroattiva su periodo quadrato) e D06 (budget fuori perimetro) dipendono da periodi e perimetro:
@@ -93,7 +93,7 @@ export const REGOLE_D: DefinizioneRegola[] = [
         const p = parti(m.d.anno_mese as string);
         if (p.a * 12 + p.m >= da) ricavi.set(s(m.d.id_contratto), (ricavi.get(s(m.d.id_contratto)) ?? 0) + (num(m.d.importo) ?? 0));
       }
-      return ctx.contratti.flatMap((c) => {
+      return unificati(ctx.contratti).flatMap((c) => {
         if (!attivo(c) || escluse.includes(s(c.d.linea_business)) || s(c.d.attivo_passivo) === "Passivo" || !isData(c.d.data_fine) || (ricavi.get(idDi(c)) ?? 0) <= 0) return [];
         const giorni = (new Date(c.d.data_fine + "T00:00:00Z").getTime() - oggi) / 86400000;
         if (giorni < 0 || giorni > Number(t.giorniScadenza)) return [];

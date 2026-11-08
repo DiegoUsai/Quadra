@@ -113,3 +113,30 @@ describe("regressione: il lavorato 2021 non si conta due volte", () => {
     expect(eseguiRegole(c).filter((a) => a.regola === "B01")).toEqual([]);
   });
 });
+
+describe("contratto spezzato in più ordini (stesso Id, stesso Contratto Padre)", () => {
+  const ordine = (id: string, padre: string | null, d: Record<string, string | number | null> = {}, riga = 2) => ({ ...contratto(id, { contratto_padre: padre, ...d }, riga), chiave: riga === 2 ? id : `${id}#2` });
+
+  it("A08 non segnala gli ordini dello stesso contratto con Contratto Padre uguale", () => {
+    expect(codici(ctx([ordine("SPLIT", "PADRE", {}, 2), ordine("SPLIT", "PADRE", {}, 3)]), "A08")).toEqual([]);
+  });
+  it("A08 segnala Contratto Padre diverso o mancante, indicando le righe", () => {
+    const diversi = eseguiRegole(ctx([ordine("X", "P1", {}, 2), ordine("X", "P2", {}, 3)])).filter((a) => a.regola === "A08");
+    expect(diversi).toHaveLength(1);
+    expect(diversi[0].messaggio).toContain("diverso");
+    expect(diversi[0].messaggio).toContain("righe 2, 3");
+    const mancante = eseguiRegole(ctx([ordine("Y", "P1", {}, 2), ordine("Y", null, {}, 3)])).filter((a) => a.regola === "A08");
+    expect(mancante[0].messaggio).toContain("mancante");
+  });
+  it("B04 usa la finestra unita degli ordini: un ricavo nell'ordine successivo non è fuori finestra", () => {
+    const c = ctx([ordine("S", "P", { data_inizio: "2026-01-01", data_fine: "2026-06-30" }, 2), ordine("S", "P", { data_inizio: "2026-07-01", data_fine: "2026-12-31" }, 3)],
+      [movimento("S", "2026-03-01", 10), movimento("S", "2026-09-01", 10)]);
+    expect(codici(c, "B04")).toEqual([]);
+    const fuori = ctx([ordine("S", "P", { data_inizio: "2026-01-01", data_fine: "2026-06-30" }, 2), ordine("S", "P", { data_inizio: "2026-07-01", data_fine: "2026-12-31" }, 3)], [movimento("S", "2027-02-01", 10)]);
+    expect(codici(fuori, "B04")).toEqual(["B04:S"]);
+  });
+  it("A10 non segnala la proroga se un altro ordine dello stesso contratto è ancora in corso", () => {
+    const c = ctx([ordine("T", "P", { data_fine: "2026-08-31" }, 2), ordine("T", "P", { data_inizio: "2026-09-01", data_fine: "2027-08-31" }, 3)], [movimento("T", "2026-10-01", 1000)]);
+    expect(codici(c, "A10")).toEqual([]);
+  });
+});

@@ -1,5 +1,5 @@
 import type { DefinizioneRegola } from "./tipi";
-import { attivo, daContratto, idDi, importoOk, isData, mesiTra, num, parti, ricaviPer, s } from "./util";
+import { attivo, daContratto, idDi, importoOk, isData, mesiTra, num, parti, ricaviPer, s, unificati } from "./util";
 
 // Gruppo A: struttura e qualità anagrafica (specifiche 7.1). I contratti si riconoscono dall'Id Contratto;
 // i contratti in stato Budget non hanno ancora date né importi definitivi.
@@ -65,14 +65,16 @@ export const REGOLE_A: DefinizioneRegola[] = [
     }),
   },
   {
-    codice: "A08", nome: "Id Contratto duplicato", gruppo: "A", severita: "bloccante", soglie: {},
-    descrizione: "Stessa chiave su più righe dello scadenzario.",
+    codice: "A08", nome: "Id Contratto su più righe senza Contratto Padre comune", gruppo: "A", severita: "bloccante", soglie: {},
+    descrizione: "Stesso Id Contratto su più righe. È ammesso solo per gli ordini dello stesso contratto: il Contratto Padre deve esserci ed essere uguale su tutte le righe.",
     esegui: (ctx) => {
-      const conta = new Map<string, number>();
-      for (const c of ctx.contratti) conta.set(idDi(c), (conta.get(idDi(c)) ?? 0) + 1);
-      return [...conta].filter(([, n]) => n > 1).map(([id, n]) => {
-        const c = ctx.contratti.find((x) => idDi(x) === id)!;
-        return daContratto({ ...c, chiave: id }, { messaggio: `Id Contratto presente su ${n} righe`, valori: { righe: n } });
+      const righe = new Map<string, typeof ctx.contratti>();
+      for (const c of ctx.contratti) (righe.get(idDi(c)) ?? righe.set(idDi(c), []).get(idDi(c))!).push(c);
+      return [...righe].filter(([, r]) => r.length > 1).flatMap(([id, r]) => {
+        const padri = [...new Set(r.map((x) => s(x.d.contratto_padre)))];
+        if (padri.length === 1 && padri[0] !== "") return []; // ordini dello stesso contratto: ammesso
+        const motivo = padri.includes("") ? "Contratto Padre mancante su almeno una riga" : `Contratto Padre diverso tra le righe (${padri.join(", ")})`;
+        return [daContratto({ ...r[0], chiave: id }, { messaggio: `Id Contratto su ${r.length} righe (righe ${r.map((x) => x.rigaFoglio).join(", ")}): ${motivo}`, valori: { righe: r.length, padri } })];
       });
     },
   },
@@ -88,7 +90,7 @@ export const REGOLE_A: DefinizioneRegola[] = [
       const ric = ricaviPer(ctx.movimenti), o = parti(ctx.oggi);
       const da = o.a * 12 + o.m - Number(t.mesiRicaviRecenti); // primo mese considerato (esclusi i mesi futuri)
       const recenti = (id: string) => (ric.get(id) ?? []).filter((m) => isData(m.d.anno_mese) && (num(m.d.importo) ?? 0) !== 0 && parti(m.d.anno_mese as string).a * 12 + parti(m.d.anno_mese as string).m >= da && (m.d.anno_mese as string) <= ctx.oggi);
-      return ctx.contratti.flatMap((c) => {
+      return unificati(ctx.contratti).flatMap((c) => {
         const fine = c.d.data_fine;
         if (!isData(fine)) return [];
         if (s(c.d.stato) === "Chiuso" && fine > ctx.oggi)
