@@ -235,3 +235,10 @@ export const oreAnomalia = pgTable("ore_anomalia", {
   risoltaIl: timestamp("risolta_il", { withTimezone: true }),
   notificataIl: timestamp("notificata_il", { withTimezone: true }),
 }, (t) => [uniqueIndex("ore_anomalia_fingerprint_uq").on(t.fingerprint)]);
+
+// Ultimo controllo ore eseguito per mese: distingue "mai controllato" da "controllato e senza segnalazioni".
+export const oreControllo = pgTable("ore_controllo", {
+  anno: integer("anno").notNull(), mese: integer("mese").notNull(),
+  eseguitoIl: timestamp("eseguito_il", { withTimezone: true }).defaultNow().notNull(),
+  segnalazioni: integer("segnalazioni").notNull().default(0), utentiHub: integer("utenti_hub").notNull().default(0),
+}, (t) => [primaryKey({ columns: [t.anno, t.mese] })]);

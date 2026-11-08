@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { oreAnomalia } from "@/db/schema";
+import { oreAnomalia, oreControllo } from "@/db/schema";
 import { creaNotifier } from "@/lib/notifier";
 import { leggiFogli } from "@/lib/scadenzario/google";
 import { caricaEccezioni, opzioniOre } from "./eccezioni";
@@ -62,6 +62,8 @@ export async function eseguiControlloOre(anno: number, mese: number, bu = proces
   for (const a of r.aggiorna) ops.push(db.update(oreAnomalia).set({ giorni: a.p.giorni, oreTotali: String(a.p.oreTotali), ...(a.riapre ? { stato: "aperta", risoltaIl: null, notificataIl: null } : {}) }).where(eq(oreAnomalia.id, a.id)));
   for (const id of r.presenti) ops.push(db.update(oreAnomalia).set({ ultimaVista: new Date() }).where(eq(oreAnomalia.id, id)));
   for (const id of r.risolte) ops.push(db.update(oreAnomalia).set({ stato: "risolta", risoltaIl: new Date() }).where(eq(oreAnomalia.id, id)));
+  const stato = { eseguitoIl: new Date(), segnalazioni: prodotte.length, utentiHub: hub.users.length };
+  ops.push(db.insert(oreControllo).values({ anno, mese, ...stato }).onConflictDoUpdate({ target: [oreControllo.anno, oreControllo.mese], set: stato }));
   if (ops.length) await db.batch(ops as [(typeof ops)[0], ...typeof ops]);
   return { anno, mese, utentiHub: hub.users.length, righeAssenza: assenze.length, segnalazioni: prodotte.length, nuove: r.nuove.length, risolte: r.risolte.length, riaperte: r.aggiorna.filter((a) => a.riapre).length };
 }

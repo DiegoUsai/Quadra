@@ -15,7 +15,10 @@ export async function controllaMese(formData: FormData) {
   let esito = "";
   try {
     const r = await eseguiControlloOre(anno, mese);
-    esito = `Controllo eseguito: ${r.segnalazioni} segnalazioni (${r.nuove} nuove, ${r.risolte} risolte).`;
+    const alle = new Date().toLocaleTimeString("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", minute: "2-digit" });
+    esito = r.segnalazioni === 0
+      ? `Controllo completato alle ${alle}: letti ${r.utentiHub} dipendenti HUB e ${r.righeAssenza} righe di assenza, nessuna segnalazione.`
+      : `Controllo completato alle ${alle}: letti ${r.utentiHub} dipendenti HUB e ${r.righeAssenza} righe di assenza; ${r.segnalazioni} segnalazioni (${r.nuove} nuove, ${r.risolte} risolte).`;
   } catch (e) {
     esito = "ERRORE: " + (e instanceof Error ? e.message : String(e)).slice(0, 200); // i messaggi non contengono dati personali (vedi hubOre)
   }
