@@ -128,3 +128,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Impeccable: screenshots of real data, throwaway mockups and local server state
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/questions/
