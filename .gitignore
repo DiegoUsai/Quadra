@@ -132,3 +132,7 @@ next-env.d.ts
 .impeccable/review/
 .impeccable/mocks/
 .impeccable/questions/
+
+# Strumenti di sviluppo locali (configurazioni e cache, non fanno parte dell applicazione)
+.codex/
+.impeccable/
