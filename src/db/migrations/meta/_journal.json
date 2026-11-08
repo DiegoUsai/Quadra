@@ -50,6 +50,13 @@
       "when": 1794154985350,
       "tag": "0006_nervous_black_tom",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794157544559,
+      "tag": "0007_tiny_firedrake",
+      "breakpoints": true
     }
   ]
 }
