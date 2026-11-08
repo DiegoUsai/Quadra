@@ -1,10 +1,11 @@
-import { asc } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { auth, authSaltata } from "@/auth";
 import { getDb } from "@/db";
-import { correzione, eccezione, regola } from "@/db/schema";
+import { correzione, eccezione, mappaUtente, oreEccezione, regola, rigaCorrente } from "@/db/schema";
+import { TIPI_ORE } from "@/lib/hub/eccezioni";
 import { REGOLE } from "@/lib/regole/indice";
 import Barra from "../Barra";
-import { eliminaEccezione, salvaRegola } from "./azioni";
+import { aggiungiOreEccezione, eliminaEccezione, eliminaOreEccezione, salvaMappaPm, salvaRegola } from "./azioni";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,13 @@ export default async function Regole() {
     return (<><Barra corrente="/regole" /><main style={{ maxWidth: 720, margin: "0 auto", padding: 16 }}><h1>Regole ed eccezioni</h1><p style={muto}>Questa pagina è riservata all&apos;amministratore.</p></main></>);
 
   const db = getDb();
-  const [righe, ecc, corr] = await Promise.all([
+  const [righe, ecc, corr, pmNomi, pmSlack, oreEcc] = await Promise.all([
     db.select().from(regola), db.select().from(eccezione).orderBy(asc(eccezione.regola), asc(eccezione.entitaChiave)), db.select().from(correzione).orderBy(asc(correzione.entitaChiave)),
+    db.selectDistinct({ pm: sql<string>`${rigaCorrente.dati}->>'pm'` }).from(rigaCorrente).where(sql`${rigaCorrente.foglio} = 'Contratti Attivi' and ${rigaCorrente.dati}->>'pm' is not null`),
+    db.select().from(mappaUtente), db.select().from(oreEccezione).orderBy(asc(oreEccezione.tipo), asc(oreEccezione.nome)),
   ]);
+  const slackDi = new Map(pmSlack.map((p) => [p.pmNome, p.slackUserId ?? ""]));
+  const pmLista = [...new Set(pmNomi.map((p) => p.pm).filter(Boolean))].sort();
   const dbPer = new Map(righe.map((r) => [r.codice, r]));
   const gruppi = [...new Set(REGOLE.map((r) => r.gruppo))];
 
@@ -90,6 +95,46 @@ export default async function Regole() {
               ))}</tbody>
             </table>
           </div>
+        </section>
+        <section style={{ marginTop: 24 }}>
+          <h2 style={{ fontSize: 16, marginBottom: 6 }}>PM e utenti Slack</h2>
+          <p style={{ ...muto, marginTop: 0 }}>Serve a menzionare il PM nelle notifiche. L&apos;ID si copia dal profilo Slack della persona (Copia ID membro) e ha la forma U0123ABCD. Senza ID il nome compare in chiaro.</p>
+          <table style={{ borderCollapse: "collapse" }}>
+            <thead><tr>{["PM (colonna PM dello scadenzario)", "ID utente Slack", ""].map((h, i) => <th key={i} scope="col" style={cella}>{h}</th>)}</tr></thead>
+            <tbody>{pmLista.map((pm) => (
+              <tr key={pm}><td style={cella}>{pm}</td>
+                <td style={cella}><input form={`pm-${pm}`} name="slack" defaultValue={slackDi.get(pm) ?? ""} placeholder="U0123ABCD" className="btn" aria-label={`ID Slack di ${pm}`} /></td>
+                <td style={cella}><form id={`pm-${pm}`} action={salvaMappaPm}><input type="hidden" name="pm" value={pm} /><button className="btn primary" type="submit">Salva</button></form></td></tr>
+            ))}</tbody>
+          </table>
+        </section>
+        <section style={{ marginTop: 24 }}>
+          <h2 style={{ fontSize: 16, marginBottom: 6 }}>Controllo ore: eccezioni ({oreEcc.length})</h2>
+          <p style={{ ...muto, marginTop: 0 }}>
+            Il nome si scrive come sull&apos;HUB, in qualunque ordine. <strong>orario</strong>: part-time (ore al giorno e/o giorni liberi); <strong>presa servizio</strong>: primo giorno in servizio;
+            <strong> nome escluso</strong>: aspettativa, altra BU o uscito; <strong>ferie su HUB</strong>: rendiconta le ferie anche sull&apos;HUB; <strong>remoto</strong>: il patrono non vale.
+            Per nome escluso, ferie su HUB e remoto il periodo (dal, fino al) limita la validità: scaduta, l&apos;eccezione non si applica più.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%" }}>
+              <thead><tr>{["Tipo", "Nome", "Parametri", "Motivo", "Approvata da", "Dal", "Fino al", ""].map((h, i) => <th key={i} scope="col" style={cella}>{h}</th>)}</tr></thead>
+              <tbody>{oreEcc.map((e) => (
+                <tr key={e.id}><td style={cella}>{e.tipo}</td><td style={cella}>{e.nome}</td><td style={{ ...cella, fontFamily: "monospace" }}>{Object.keys(e.parametriJson as object).length ? JSON.stringify(e.parametriJson) : ""}</td>
+                  <td style={{ ...cella, maxWidth: 320 }}>{e.motivo}</td><td style={cella}>{e.approvataDa}</td><td style={cella}>{e.validaDal ?? ""}</td><td style={cella}>{e.validaFino ?? ""}</td>
+                  <td style={cella}><form action={eliminaOreEccezione}><input type="hidden" name="id" value={e.id} /><button className="btn" type="submit">Elimina</button></form></td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <form action={aggiungiOreEccezione} style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, alignItems: "flex-end" }}>
+            <label>Tipo<br /><select name="tipo" className="btn">{TIPI_ORE.map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
+            <label>Nome<br /><input name="nome" required className="btn" placeholder="Cognome Nome" /></label>
+            <label>Ore al giorno<br /><input name="oreGiorno" className="btn" placeholder="6" size={4} /></label>
+            <label>Giorni liberi<br /><input name="liberi" className="btn" placeholder="ven" size={8} /></label>
+            <label>Dal<br /><input name="dal" type="date" className="btn" /></label>
+            <label>Fino al<br /><input name="fino" type="date" className="btn" /></label>
+            <label>Motivo<br /><input name="motivo" required className="btn" size={36} /></label>
+            <button type="submit" className="btn primary">Aggiungi</button>
+          </form>
         </section>
       </main>
     </>

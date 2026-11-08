@@ -1,0 +1,21 @@
+name: Controllo ore
+# Chiama /api/jobs/ore su Vercel una volta al giorno (GitHub usa l'ora UTC; i cron possono ritardare di qualche minuto).
+# Secret da impostare nel repository (Settings > Secrets and variables > Actions): APP_BASE_URL (es. https://quadra.vercel.app) e CRON_SECRET.
+on:
+  schedule:
+    - cron: "30 5 * * *" # 06:30 o 07:30 in Italia, a seconda dell'ora legale
+  workflow_dispatch: {}
+jobs:
+  ore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Esegue il controllo
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$APP_BASE_URL" -a -n "$CRON_SECRET" || { echo "secret APP_BASE_URL o CRON_SECRET mancante"; exit 1; }
+          # La risposta contiene solo conteggi; il log di GitHub non deve mai ricevere nomi di persone.
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 20 --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" "${APP_BASE_URL%/}/api/jobs/ore"

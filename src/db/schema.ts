@@ -181,6 +181,7 @@ export const anomalia = pgTable("anomalia", {
   rigaFoglio: integer("riga_foglio"), foglio: text("foglio"), pm: text("pm"),
   creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
   risoltaIl: timestamp("risolta_il", { withTimezone: true }),
+  notificataIl: timestamp("notificata_il", { withTimezone: true }), // ultima notifica Slack; azzerata quando l'anomalia si riapre
 }, (t) => [uniqueIndex("anomalia_fingerprint_uq").on(t.fingerprint)]);
 
 export const anomaliaStorico = pgTable("anomalia_storico", {
@@ -188,3 +189,49 @@ export const anomaliaStorico = pgTable("anomalia_storico", {
   quando: timestamp("quando", { withTimezone: true }).defaultNow().notNull(),
   utente: text("utente"), da: text("da"), a: text("a").notNull(), nota: text("nota"),
 });
+
+// --- Fase 4: notifiche (specifiche 5.3, 10) ---
+export const mappaUtente = pgTable("mappa_utente", {
+  pmNome: text("pm_nome").primaryKey(), // come compare nella colonna PM dello scadenzario
+  email: text("email"), slackUserId: text("slack_user_id"), // U0123ABC: serve per menzionare il PM
+  ruolo: text("ruolo").notNull().default("viewer"),
+});
+
+export const notifica = pgTable("notifica", {
+  id: serial("id").primaryKey(),
+  tipo: text("tipo").notNull(), // nuove | risoluzione | riepilogo | errore
+  canale: text("canale").notNull(), destinatario: text("destinatario"),
+  anomaliaId: integer("anomalia_id"), runId: integer("run_id"),
+  inviataIl: timestamp("inviata_il", { withTimezone: true }).defaultNow().notNull(),
+  esito: text("esito").notNull(), // ok | errore
+  threadTs: text("thread_ts"), payloadHash: text("payload_hash"), errore: text("errore"),
+});
+
+// --- Controllo ore (specifiche 16, punti 30-35): eccezioni come DATI, per nome (come sull'HUB; l'ordine nome/cognome non conta) ---
+// tipo: orario (parametri: oreGiorno o ore per giorno lun..ven) | presa_servizio (valida_dal = primo giorno in servizio)
+//       | nome_escluso (aspettativa, altra BU, uscito) | ferie_su_hub | remoto (patrono non vale).
+// Per nome_escluso, ferie_su_hub e remoto, valida_dal e valida_fino limitano il periodo: scaduta, l'eccezione non si applica più.
+export const oreEccezione = pgTable("ore_eccezione", {
+  id: serial("id").primaryKey(),
+  tipo: text("tipo").notNull(), nome: text("nome").notNull(),
+  parametriJson: jsonb("parametri_json").notNull().default({}),
+  motivo: text("motivo").notNull(), approvataDa: text("approvata_da").notNull(),
+  validaDal: date("valida_dal"), validaFino: date("valida_fino"),
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Anomalie del controllo ore: tabella separata da `anomalia` perché riguardano persone, non contratti: visibili solo
+// all'amministratore e mai con i nomi su Slack (specifiche 16, punto 32). Una riga per codice, persona e mese, con i giorni dentro.
+export const oreAnomalia = pgTable("ore_anomalia", {
+  id: serial("id").primaryKey(),
+  fingerprint: text("fingerprint").notNull(), // codice|nome normalizzato|aaaa-mm
+  codice: text("codice").notNull(), nome: text("nome").notNull(),
+  anno: integer("anno").notNull(), mese: integer("mese").notNull(),
+  giorni: jsonb("giorni").notNull().default([]), // [{ g: "gg/mm/aaaa", ore: number }]
+  oreTotali: numeric("ore_totali", { precision: 8, scale: 2 }).notNull().default("0"),
+  stato: text("stato").notNull().default("aperta"), // aperta | risolta
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
+  ultimaVista: timestamp("ultima_vista", { withTimezone: true }).defaultNow().notNull(),
+  risoltaIl: timestamp("risolta_il", { withTimezone: true }),
+  notificataIl: timestamp("notificata_il", { withTimezone: true }),
+}, (t) => [uniqueIndex("ore_anomalia_fingerprint_uq").on(t.fingerprint)]);

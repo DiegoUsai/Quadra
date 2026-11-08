@@ -104,3 +104,11 @@ describe("gruppo K: righe di Costi/Ricavi", () => {
     expect(sg({ nota: "quadratura" })).toEqual([]);
   });
 });
+
+describe("H04 con la colonna Spec. Voce del Lookup", () => {
+  it("se il Lookup ha la colonna Spec. Voce, sono ammessi quei valori e non più le Linee Servizio", () => {
+    const lookup = [...LOOKUP, ...lk("spec_voce", ["Assistenza/Supporto", "Costi del personale"], 300)];
+    const c = { ...ctx([contratto("CTR_A")], [mov("CTR_A", { spec_voce: "Assistenza/Supporto" }, 5), mov("CTR_A", { spec_voce: "MAC" }, 6)]), lookup };
+    expect(trova(c, "H04").map((a) => a.valori?.valore)).toEqual(["MAC"]);
+  });
+});

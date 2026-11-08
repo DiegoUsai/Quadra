@@ -45,7 +45,7 @@ export const DEFINIZIONI: Record<Foglio, { def: Def[]; obbligatori: string[]; an
       D("id_contratto", "id contratto"), D("id_progetto", "id progetto"), D("cliente_fornitore", "cliente/fornitore"),
       D("codice_fatturazione", "codice fatturazione"), D("tipo_cliente_fornitore", "tipo cliente/fornitore"), D("crm", "crm"),
       D("stato_contratto", "stato contratto"), D("tipologia_contratto", "tipologia contratto"), D("linee_servizio", "linee servizio"),
-      D("tipologia_servizio", "tipologia servizio"), D("termine_pagamento", "termine pagamento"), D("aliquota_iva", "aliquota iva"),
+      D("tipologia_servizio", "tipologia servizio"), D("termine_pagamento", "termine pagamento"), D("aliquota_iva", "aliquota iva"), D("spec_voce", "spec. voce"),
     ],
   },
 };

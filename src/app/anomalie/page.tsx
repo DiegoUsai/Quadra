@@ -4,6 +4,7 @@ import { anomalia } from "@/db/schema";
 import { auth, authSaltata } from "@/auth";
 import { REGOLE } from "@/lib/regole/indice";
 import { rimedioDi } from "@/lib/regole/rimedi";
+import { dove } from "@/lib/regole/descrivi";
 import { gidFogli } from "@/lib/scadenzario/google";
 import Barra from "../Barra";
 import { prendiInCarico, riconosci, risolvi } from "./azioni";
@@ -15,22 +16,10 @@ const STATI = ["aperta", "in_carico", "riaperta", "riconosciuta", "risolta"] as 
 const ETICHETTA: Record<string, string> = { bloccante: "Bloccante", alta: "Alta", media: "Media", info: "Info", in_carico: "In carico", riconosciuta: "Riconosciuta", da_trattare: "Da trattare" };
 const nome = (v: string) => ETICHETTA[v] ?? v.charAt(0).toUpperCase() + v.slice(1);
 const REGOLA = new Map(REGOLE.map((r) => [r.codice, r]));
-const MESI = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
 
 type Filtri = { severita?: string; regola?: string; stato?: string; pm?: string; q?: string };
 type Riga = typeof anomalia.$inferSelect;
 
-// Dove si trova l'anomalia, in parole: contratto o progetto, e mese se c'è.
-function dove(a: Riga): { principale: string; dettaglio: string } {
-  const v = (a.valoriJson ?? {}) as Record<string, unknown>;
-  const mese = a.periodoMese ? `${MESI[a.periodoMese - 1]} ${a.periodoAnno}` : a.periodoAnno ? String(a.periodoAnno) : "";
-  if (a.entitaTipo === "movimento") return { principale: String(v.contratto ?? a.entitaChiave.split("|")[1] ?? a.entitaChiave), dettaglio: ["riga di Costi/Ricavi", mese].filter(Boolean).join(" · ") };
-  if (v.contratto && a.regola[0] !== "D") return { principale: String(v.contratto), dettaglio: [a.foglio === "Costi/Ricavi" ? "righe di Costi/Ricavi" : "", mese].filter(Boolean).join(" · ") };
-  if (a.regola === "H02" || a.regola === "H03" || a.regola === "H07") return { principale: String(v.valore ?? a.entitaChiave.split("|").pop()), dettaglio: a.regola === "H07" ? "foglio Lookup" : "" };
-  if (a.entitaChiave.includes("|")) { const [p, anno] = a.entitaChiave.split("|"); return { principale: `Progetto ${p}`, dettaglio: anno }; }
-  if (a.regola.startsWith("D0") && a.regola !== "D05") return { principale: `Progetto ${a.entitaChiave}`, dettaglio: mese };
-  return { principale: a.entitaChiave.replace(/#\d+$/, ""), dettaglio: mese };
-}
 
 export default async function Anomalie({ searchParams }: { searchParams: Promise<Filtri> }) {
   const f = await searchParams;
