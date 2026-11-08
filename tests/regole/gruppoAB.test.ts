@@ -77,7 +77,7 @@ describe("gruppo B", () => {
   });
   it("B04 ricavi oltre la data fine", () => {
     const c = ctx([contratto("F", { data_fine: "2026-06-30" })], [movimento("F", "2026-06-01", 10), movimento("F", "2026-08-01", 10)]);
-    expect(codici(c, "B04")).toEqual(["B04:F"]);
+    expect(codici(c, "B04")).toEqual(["B04:2026-08-01|F|Ricavo|MAC|x|Canone"]); // una anomalia per riga fuori finestra
   });
   it("B04 non guarda i contratti passivi", () => {
     const c = ctx([contratto("P", { attivo_passivo: "Passivo", data_fine: "2026-06-30" })], [movimento("P", "2026-08-01", 10)]);
@@ -133,7 +133,7 @@ describe("contratto spezzato in più ordini (stesso Id, stesso Contratto Padre)"
       [movimento("S", "2026-03-01", 10), movimento("S", "2026-09-01", 10)]);
     expect(codici(c, "B04")).toEqual([]);
     const fuori = ctx([ordine("S", "P", { data_inizio: "2026-01-01", data_fine: "2026-06-30" }, 2), ordine("S", "P", { data_inizio: "2026-07-01", data_fine: "2026-12-31" }, 3)], [movimento("S", "2027-02-01", 10)]);
-    expect(codici(fuori, "B04")).toEqual(["B04:S"]);
+    expect(codici(fuori, "B04")).toEqual(["B04:2027-02-01|S|Ricavo|MAC|x|Canone"]);
   });
   it("A10 non segnala la proroga se un altro ordine dello stesso contratto è ancora in corso", () => {
     const c = ctx([ordine("T", "P", { data_fine: "2026-08-31" }, 2), ordine("T", "P", { data_inizio: "2026-09-01", data_fine: "2027-08-31" }, 3)], [movimento("T", "2026-10-01", 1000)]);
@@ -153,5 +153,28 @@ describe("soglie modificabili dall'amministratore", () => {
     expect(() => soglieValide("B01", '{"tolleranza": "molta"}')).toThrow(/tipo/);
     expect(() => soglieValide("A11", '{"ammesse": "Documentale"}')).toThrow(/tipo/);
     expect(() => soglieValide("ZZ99", "{}")).toThrow(/sconosciuta/);
+  });
+});
+
+import { silenzioso } from "@/lib/regole/persistenza";
+describe("B04 una anomalia per riga, notifica solo da oggi", () => {
+  const fuori = (...mesi: string[]) => ctx([contratto("F", { data_fine: "2026-06-30" })], [movimento("F", "2026-05-01", 10), ...mesi.map((m) => movimento("F", m, 10))]);
+  it("ogni riga fuori finestra ha la sua anomalia, anche se il contratto è già segnalato per altri mesi", () => {
+    expect(codici(fuori("2026-08-01"), "B04")).toHaveLength(1);
+    expect(codici(fuori("2026-08-01", "2026-09-01", "2026-10-01"), "B04")).toHaveLength(3);
+    const a = eseguiRegole(fuori("2026-08-01")).find((x) => x.regola === "B04")!;
+    expect(a).toMatchObject({ entitaTipo: "movimento", foglio: "Costi/Ricavi", rigaFoglio: 10, pm: "Anna", periodo: { anno: 2026, mese: 8 }, baseline: true });
+  });
+  it("la riga comparsa dopo la lettura di base è marcata, le altre no", () => {
+    const c = { ...fuori("2026-08-01", "2026-09-01"), righeNuove: new Set(["2026-09-01|F|Ricavo|MAC|x|Canone"]) };
+    const per = Object.fromEntries(eseguiRegole(c).filter((x) => x.regola === "B04").map((x) => [x.periodo!.mese, x.nuovaDaOggi]));
+    expect(per).toEqual({ 8: false, 9: true });
+  });
+  it("base silenziosa: solo alla prima esecuzione per quel tipo di entità e mai per le righe nuove", () => {
+    const a = { regola: "B04", entitaTipo: "movimento" as const, baseline: true, nuovaDaOggi: false };
+    expect(silenzioso(a, new Set())).toBe(true);
+    expect(silenzioso({ ...a, nuovaDaOggi: true }, new Set())).toBe(false);
+    expect(silenzioso(a, new Set(["B04|movimento"]))).toBe(false); // dalla seconda esecuzione si notifica tutto ciò che è nuovo
+    expect(silenzioso({ ...a, baseline: false }, new Set())).toBe(false); // le altre regole non cambiano
   });
 });
