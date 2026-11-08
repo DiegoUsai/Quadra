@@ -1,8 +1,3 @@
-.pagina { max-width: 1180px; margin: 0 auto; padding: var(--cds-pad-lg) 1rem 3rem; }
-.pagina h1 { font-family: var(--font-anthropic-serif); font-weight: 700; font-size: var(--cds-font-size-title); line-height: 1.15; letter-spacing: -.01em; margin: 0 0 .35rem; }
-.pagina .sottotitolo { color: var(--color-fg-muted); margin: 0 0 var(--cds-gap-md); max-width: 70ch; }
-.pagina a:not(.btn) { color: var(--color-fg); text-underline-offset: 3px; }
-.pagina a:not(.btn):hover { color: var(--color-accent-testo); }
 
 .conteggi { position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1px; background: var(--color-border-line); border: 1px solid var(--color-border-line); border-top: 0; margin: 0 0 var(--cds-gap-md); }
 .conteggi::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; border-top: 1px solid var(--color-fg); border-bottom: 1px solid var(--color-fg); z-index: 1; pointer-events: none; }
@@ -20,8 +15,6 @@
 .filtri label { display: grid; gap: .25rem; font-size: var(--cds-font-size-caption); font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); }
 .filtri .largo { grid-column: span 2; }
 .filtri .comandi { display: flex; gap: .5rem; align-items: center; }
-.campo { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); padding: .4rem .6rem; min-height: 2.5rem; width: 100%; box-sizing: border-box; }
-.campo:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 1px; }
 
 .viste { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem 1rem; margin: 0 0 var(--cds-gap-sm); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
 .viste a[aria-current] { font-weight: 700; }
