@@ -134,3 +134,32 @@ describe("gruppo D", () => {
     expect(trova(ctx([scade, successore], m), "D05")).toEqual([]);
   });
 });
+
+import { eseguiRegole as eseguiD07 } from "@/lib/regole/indice";
+import { contratto as contrattoD07, ctx as ctxD07 } from "./fixture";
+describe("D07 residuo aperto da mettere a budget", () => {
+  const d07 = (c: ReturnType<typeof ctxD07>) => eseguiD07(c).filter((a) => a.regola === "D07");
+  const con = (id: string, prog: string, d: Record<string, string | number | null> = {}) => contrattoD07(id, { id_progetto: prog, da_lavorare: 20000, ...d });
+  it("segnala un'anomalia per progetto, con stato, residuo e anno del budget successivo", () => {
+    const r = d07(ctxD07([con("A1", "P1", { da_lavorare: 30000 }), con("A2", "P1", { stato: "Da contrattualizzare", da_lavorare: 5000 }), con("B1", "P2")]));
+    expect(r.map((a) => a.entitaChiave).sort()).toEqual(["P1|2027", "P2|2027"]); // OGGI è nel 2026: budget 2027
+    const p1 = r.find((a) => a.entitaChiave === "P1|2027")!;
+    expect(p1.messaggio).toContain("35.000");
+    expect(p1.messaggio).toContain("Contrattualizzato (1), Da contrattualizzare (1)");
+    expect(p1.valori).toMatchObject({ progetto: "P1", residuo: 35000, anno: 2027 });
+  });
+  it("conta Contrattualizzato, Da contrattualizzare e Budget; non Chiuso, né vuoto, né passivi", () => {
+    const c = ctxD07([con("A", "P1", { stato: "Budget" }), con("B", "P2", { stato: "Chiuso" }), con("C", "P3", { stato: null }), con("D", "P4", { attivo_passivo: "Passivo" }), con("E", "P5", { stato: "Da contrattualizzare" })]);
+    expect(d07(c).map((a) => a.entitaChiave).sort()).toEqual(["P1|2027", "P5|2027"]);
+  });
+  it("sotto soglia, residuo zero o negativo e linee escluse non si segnalano", () => {
+    const c = ctxD07([con("A", "P1", { da_lavorare: 1000 }), con("B", "P2", { da_lavorare: 0 }), con("C", "P3", { da_lavorare: -500 }), con("D", "P4", { linea_business: "Socio-sanitario" }), con("E", "P5", { da_lavorare: 1001 })]);
+    expect(d07(c).map((a) => a.entitaChiave)).toEqual(["P5|2027"]);
+  });
+  it("dice se la data fine è già passata e porta riga e PM del contratto con più residuo", () => {
+    const c = ctxD07([con("A", "P1", { da_lavorare: 5000, data_fine: "2026-06-30" }), { ...con("B", "P1", { da_lavorare: 9000, data_fine: "2026-09-30", pm: "Carla" }), rigaFoglio: 7 }]);
+    const a = d07(c)[0];
+    expect(a.messaggio).toContain("fine 30/09/2026, già scaduta");
+    expect(a).toMatchObject({ rigaFoglio: 7, pm: "Carla" });
+  });
+});
