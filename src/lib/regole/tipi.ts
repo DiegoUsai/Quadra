@@ -1,5 +1,7 @@
 // Le regole sono funzioni pure (contesto, soglie) -> anomalie grezze (specifiche 7). Nessun accesso a DB o orologio:
 // la data di riferimento arriva nel contesto, così stessi input danno stessi esiti.
+import type { ProgettoCgd } from "../cgd/tipi";
+
 export type Dati = Record<string, string | number | null>;
 export type Contratto = { chiave: string; rigaFoglio: number | null; d: Dati };
 export type Movimento = { chiave: string; rigaFoglio: number | null; d: Dati };
@@ -21,6 +23,8 @@ export type Contesto = {
   lookup?: RigaLookup[];
   // Chiavi delle righe di Costi/Ricavi comparse dopo la lettura di base (variazione "nuova"): servono a B04 per notificare solo ciò che è nuovo.
   righeNuove?: Set<string>;
+  // Progetti del CGD (HUB) letti dall'ultimo aggiornamento, per le regole G; assente finché non si è mai letto l'HUB.
+  cgd?: ProgettoCgd[];
 };
 
 export type Severita = "bloccante" | "alta" | "media" | "info";

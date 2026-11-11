@@ -1,10 +1,11 @@
 // Prova del controllo ore: npm run ore -- 2026 11  (ASSENZE_SPREADSHEET_ID nel .env.local). Stampa solo conteggi, mai nomi.
 import { config } from "dotenv";
 config({ path: ".env.local" });
-const { hubOre, leggiAssenze, controllaOre } = await import("../src/lib/hub/ore");
+const { leggiAssenze, controllaOre } = await import("../src/lib/hub/ore");
+const { creaCgdSource } = await import("../src/lib/cgd");
 const { leggiFogli } = await import("../src/lib/scadenzario/google");
 const [anno, mese] = process.argv.slice(2).map(Number);
-const hub = await hubOre(anno, mese);
+const hub = await creaCgdSource().ore(anno, mese);
 let assenze: ReturnType<typeof leggiAssenze> = [];
 const id = process.env.ASSENZE_SPREADSHEET_ID?.match(/[\w-]{44}/)?.[0]; // accetta anche l URL incollato per intero
 try {
