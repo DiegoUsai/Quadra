@@ -21,7 +21,8 @@
     "notifiche:base": "tsx scripts/notifiche.ts base",
     "notifiche:prova": "tsx scripts/notifiche.ts prova",
     "ore": "tsx scripts/ore.ts",
-    "ore:import": "tsx scripts/ore-import.ts"
+    "ore:import": "tsx scripts/ore-import.ts",
+    "budget:importa": "tsx scripts/budget-importa.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

@@ -1,0 +1,1 @@
+ALTER TABLE "budget_riga" ALTER COLUMN "importo" SET DATA TYPE numeric(16, 6);

@@ -57,6 +57,20 @@
       "when": 1794157544559,
       "tag": "0007_tiny_firedrake",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794438150657,
+      "tag": "0008_left_firestar",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794438371923,
+      "tag": "0009_tan_killraven",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,8 @@ const sql = neon(process.env.DATABASE_URL!);
 const [{ n }] = await sql.query("select count(*)::int n from storico_dettaglio");
 const tot = await sql.query(`select anno, gruppo, round(sum(importo))::bigint s from storico_dettaglio
   where fonte='consuntivo' and tipo='Ricavo' group by 1,2`);
-const fasi = await sql.query("select gruppo, round(sum(budget))::bigint s from storico_fasi_2027 group by 1");
+// I totali di controllo (specifiche 15.1) valgono per la versione "review" del budget 2027 (v2); la versione attiva può essere un'altra.
+const fasi = await sql.query("select gruppo, round(sum(importo))::bigint s from budget_riga where anno = 2027 and versione = 2 group by 1");
 
 let ko = 0;
 const verifica = (nome: string, trovato: number, atteso: number, tol = 0) => {
@@ -21,5 +22,5 @@ for (const r of tot) {
   const att = (c ? ATTESI.canoni : ATTESI.variabile)[r.anno as 2023];
   verifica(`${c ? "canoni" : "variabile"} ${r.anno}`, Number(r.s), att);
 }
-for (const r of fasi) verifica(`budget 2027 ${r.gruppo}`, Number(r.s), r.gruppo === "Canone" ? ATTESI.budget2027.canoni : ATTESI.budget2027.mev, 20);
+for (const r of fasi) verifica(`budget 2027 (versione review) ${r.gruppo}`, Number(r.s), r.gruppo === "Canone" ? ATTESI.budget2027.canoni : ATTESI.budget2027.mev, 20);
 process.exit(ko ? 1 : 0);
