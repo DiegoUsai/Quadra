@@ -1,6 +1,5 @@
 // Ore rendicontate sull'HUB (CGD) e confronto con le assenze di "Elenco Assenze" (specifiche 16, punti 30-35).
-// Sola lettura. Il token di sessione dell'utente sta in HUB_TOKEN (.env.local / variabili Vercel), mai nel repository.
-// ponytail: il token di sessione scade; con un token di servizio cambia solo `hubOre`. Il resto non lo sa.
+// Sola lettura. L'HUB si legge solo tramite CgdSource (src/lib/cgd); qui ci sono i tipi della risposta e le regole.
 import type { Cella } from "../scadenzario/valori";
 
 export type GiornoHub = {
@@ -12,22 +11,6 @@ export type UtenteHub = {
   days: GiornoHub[];
 };
 export type RispostaHub = { year: number; month: number; users: UtenteHub[] };
-
-export async function hubOre(anno: number, mese: number, tentativi = 3): Promise<RispostaHub> {
-  const token = process.env.HUB_TOKEN;
-  if (!token) throw new Error("HUB_TOKEN non impostata");
-  const url = `https://hub-api.simaggioli.it/be/api/v1/projects/reporting/monthly-overview?year=${anno}&month=${mese}&page=0&size=-1&user=&programId=`;
-  for (let i = 0; ; i++) {
-    const r = await fetch(url, { headers: { "x-auth-token": token, accept: "application/json" } });
-    if (r.ok) return (await r.json()) as RispostaHub;
-    if (r.status === 401) throw new Error("HUB: token scaduto o non valido (401), va rinnovato");
-    if ((r.status === 429 || r.status >= 500) && i < tentativi) {
-      await new Promise((ok) => setTimeout(ok, 500 * 2 ** i));
-      continue;
-    }
-    throw new Error(`HUB ${r.status}`); // niente corpo nel messaggio: potrebbe contenere dati personali
-  }
-}
 
 // "Cognome Nome" e "Nome Cognome" valgono lo stesso: si confronta l'insieme delle parole, senza accenti né maiuscole.
 export const chiaveNome = (s: string) =>

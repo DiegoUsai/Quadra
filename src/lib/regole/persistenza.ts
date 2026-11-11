@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { anomalia, anomaliaStorico, correzione, eccezione, regola, rigaCorrente, snapshotScadenzario, storicoDettaglio, variazione } from "@/db/schema";
+import { anomalia, anomaliaStorico, cgdProgetto, correzione, eccezione, regola, rigaCorrente, snapshotScadenzario, storicoDettaglio, variazione } from "@/db/schema";
 import { REGOLE, eseguiRegole, type Anomalia, type ConfigRegola } from "./indice";
 import type { Contesto, Dati } from "./tipi";
 
@@ -29,7 +29,8 @@ export async function contestoCorrente(oggi: string): Promise<Contesto> {
   const variazioni = vars.flatMap((v) => ((v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? []).map((c) => ({ foglio: v.foglio, chiave: v.chiave, campo: c.campo, prima: c.prima, dopo: c.dopo, quando: v.quando.toISOString() })));
   const lookup = righe.filter((r) => r.foglio === "Lookup").map((r) => ({ campo: String((r.dati as Dati).campo), valore: String((r.dati as Dati).valore), rigaFoglio: r.rigaFoglio, ripetuto: /#d+$/.test(r.chiave) }));
   const righeNuove = new Set((await db.select({ chiave: variazione.chiave }).from(variazione).where(and(eq(variazione.foglio, "Costi/Ricavi"), eq(variazione.tipo, "nuova")))).map((v) => v.chiave));
-  return { oggi, contratti: cv("Contratti Attivi"), movimenti: cv("Costi/Ricavi"), budget, variazioni, lookup, righeNuove };
+  const cgd = (await db.select().from(cgdProgetto)).map((p) => ({ id: p.id, nome: p.nome, ctr: p.ctr, importo: p.importo === null ? null : Number(p.importo), inizio: p.inizio, fine: p.fine, bloccato: p.bloccato }));
+  return { oggi, contratti: cv("Contratti Attivi"), movimenti: cv("Costi/Ricavi"), budget, variazioni, lookup, righeNuove, cgd };
 }
 
 // Un asterisco finale vale come jolly: "C*" copre tutte le regole del gruppo C, "LOTTO_*" tutti i contratti con quel prefisso.

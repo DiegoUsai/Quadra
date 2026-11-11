@@ -242,3 +242,12 @@ export const oreControllo = pgTable("ore_controllo", {
   eseguitoIl: timestamp("eseguito_il", { withTimezone: true }).defaultNow().notNull(),
   segnalazioni: integer("segnalazioni").notNull().default(0), utentiHub: integer("utenti_hub").notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.anno, t.mese] })]);
+
+// Progetti del CGD (HUB) all'ultima lettura: base delle regole G e della pagina Quadratura. Si sostituisce per intero a ogni aggiornamento.
+export const cgdProgetto = pgTable("cgd_progetto", {
+  id: integer("id").primaryKey(), // id del progetto sull'HUB
+  nome: text("nome").notNull(), ctr: text("ctr"),
+  importo: euro("importo"), inizio: date("inizio"), fine: date("fine"),
+  bloccato: boolean("bloccato").notNull().default(false),
+  lettoIl: timestamp("letto_il", { withTimezone: true }).defaultNow().notNull(),
+});

@@ -9,7 +9,7 @@ import { aggiungiOreEccezione, eliminaEccezione, eliminaOreEccezione, salvaMappa
 
 export const dynamic = "force-dynamic";
 
-const GRUPPI: Record<string, string> = { A: "Struttura e anagrafica", B: "Coerenza economica del contratto", C: "Canoni", D: "Budget e consuntivo", H: "Valori ammessi dal Lookup", K: "Righe di Costi/Ricavi" };
+const GRUPPI: Record<string, string> = { A: "Struttura e anagrafica", B: "Coerenza economica del contratto", C: "Canoni", D: "Budget e consuntivo", G: "Allineamento con l'HUB", H: "Valori ammessi dal Lookup", K: "Righe di Costi/Ricavi" };
 const SEV = ["bloccante", "alta", "media", "info"] as const;
 const cella: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px solid var(--color-border-line)", textAlign: "left", fontSize: 13, verticalAlign: "top" };
 const muto: React.CSSProperties = { color: "var(--color-fg-muted)" };

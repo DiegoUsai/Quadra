@@ -1,5 +1,5 @@
-name: Controllo ore
-# Chiama /api/jobs/ore su Vercel una volta al giorno (GitHub usa l'ora UTC; i cron possono ritardare di qualche minuto).
+name: Controllo ore e lettura CGD
+# Chiama /api/jobs/ore e /api/jobs/cgd su Vercel una volta al giorno (GitHub usa l'ora UTC; i cron possono ritardare di qualche minuto).
 # Secret da impostare nel repository (Settings > Secrets and variables > Actions): APP_BASE_URL (es. https://quadra.vercel.app) e CRON_SECRET.
 on:
   schedule:
@@ -16,6 +16,9 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           test -n "$APP_BASE_URL" -a -n "$CRON_SECRET" || { echo "secret APP_BASE_URL o CRON_SECRET mancante"; exit 1; }
-          # La risposta contiene solo conteggi; il log di GitHub non deve mai ricevere nomi di persone.
+          # Le risposte contengono solo conteggi; il log di GitHub non deve mai ricevere nomi di persone.
           curl --fail-with-body --silent --show-error --retry 3 --retry-delay 20 --max-time 90 \
             -H "Authorization: Bearer $CRON_SECRET" "${APP_BASE_URL%/}/api/jobs/ore"
+          # Lettura del CGD (HUB) e ricalcolo delle anomalie del gruppo G.
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 20 --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" "${APP_BASE_URL%/}/api/jobs/cgd"
