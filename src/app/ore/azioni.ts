@@ -20,7 +20,7 @@ export async function controllaMese(formData: FormData) {
       ? `Controllo completato alle ${alle}: letti ${r.utentiHub} dipendenti HUB e ${r.righeAssenza} righe di assenza, nessuna segnalazione.`
       : `Controllo completato alle ${alle}: letti ${r.utentiHub} dipendenti HUB e ${r.righeAssenza} righe di assenza; ${r.segnalazioni} segnalazioni (${r.nuove} nuove, ${r.risolte} risolte).`;
   } catch (e) {
-    esito = "ERRORE: " + (e instanceof Error ? e.message : String(e)).slice(0, 200); // i messaggi non contengono dati personali (vedi hubOre)
+    esito = "ERRORE: " + (e instanceof Error ? e.message : String(e)).slice(0, 200); // i messaggi non contengono dati personali (vedi getHub)
   }
   redirect(`/ore?anno=${anno}&mese=${mese}&${esito.startsWith("ERRORE") ? "errore" : "esito"}=${encodeURIComponent(esito.replace(/^ERRORE: /, ""))}`);
 }

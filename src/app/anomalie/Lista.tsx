@@ -79,7 +79,7 @@ export default async function Lista({ searchParams, ambito }: { searchParams: Pr
           {ambito === "consuntivo" && (
             <label className="largo">Tipo di anomalia
               <select name="regola" defaultValue={f.regola ?? ""} className="campo"><option value="">Tutte</option>
-                {["A", "B", "C", "D", "H", "K"].map((g) => <option key={g} value={g}>Tutto il gruppo {g}</option>)}
+                {["A", "B", "C", "D", "G", "H", "K"].map((g) => <option key={g} value={g}>Tutto il gruppo {g}</option>)}
                 {regole.map((r) => <option key={r.codice} value={r.codice}>{r.nome} ({r.codice})</option>)}</select></label>
           )}
           <label>PM

@@ -1,0 +1,1914 @@
+{
+  "id": "2a35e355-c198-4cad-8fb0-5f373b1beeda",
+  "prevId": "86af0e38-ea4c-4f0c-a91e-72b70c1e1f28",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.anomalia": {
+      "name": "anomalia",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "regola": {
+          "name": "regola",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entita_tipo": {
+          "name": "entita_tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entita_chiave": {
+          "name": "entita_chiave",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periodo_anno": {
+          "name": "periodo_anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periodo_mese": {
+          "name": "periodo_mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "severita": {
+          "name": "severita",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "messaggio": {
+          "name": "messaggio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valori_json": {
+          "name": "valori_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stato": {
+          "name": "stato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'aperta'"
+        },
+        "assegnata_a": {
+          "name": "assegnata_a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nota_risoluzione": {
+          "name": "nota_risoluzione",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prima_vista_snapshot": {
+          "name": "prima_vista_snapshot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ultima_vista_snapshot": {
+          "name": "ultima_vista_snapshot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "riga_foglio": {
+          "name": "riga_foglio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foglio": {
+          "name": "foglio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pm": {
+          "name": "pm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creata_il": {
+          "name": "creata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "risolta_il": {
+          "name": "risolta_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notificata_il": {
+          "name": "notificata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "anomalia_fingerprint_uq": {
+          "name": "anomalia_fingerprint_uq",
+          "columns": [
+            {
+              "expression": "fingerprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.anomalia_storico": {
+      "name": "anomalia_storico",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "anomalia_id": {
+          "name": "anomalia_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quando": {
+          "name": "quando",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "utente": {
+          "name": "utente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "da": {
+          "name": "da",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "a": {
+          "name": "a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nota": {
+          "name": "nota",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.app_user": {
+      "name": "app_user",
+      "schema": "",
+      "columns": {
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ruolo": {
+          "name": "ruolo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'viewer'"
+        },
+        "creato_il": {
+          "name": "creato_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.audit_log": {
+      "name": "audit_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "utente": {
+          "name": "utente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "azione": {
+          "name": "azione",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entita": {
+          "name": "entita",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prima_json": {
+          "name": "prima_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dopo_json": {
+          "name": "dopo_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quando": {
+          "name": "quando",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cgd_progetto": {
+      "name": "cgd_progetto",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ctr": {
+          "name": "ctr",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "importo": {
+          "name": "importo",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inizio": {
+          "name": "inizio",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fine": {
+          "name": "fine",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bloccato": {
+          "name": "bloccato",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "letto_il": {
+          "name": "letto_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contratti_non_a_budget": {
+      "name": "contratti_non_a_budget",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contratto": {
+          "name": "contratto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "progetto": {
+          "name": "progetto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consuntivo": {
+          "name": "consuntivo",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.correzione": {
+      "name": "correzione",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entita_chiave": {
+          "name": "entita_chiave",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parametri_json": {
+          "name": "parametri_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "motivo": {
+          "name": "motivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approvata_da": {
+          "name": "approvata_da",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valida_dal": {
+          "name": "valida_dal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attiva": {
+          "name": "attiva",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.doc2026_mensile": {
+      "name": "doc2026_mensile",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ricavi_budget": {
+          "name": "ricavi_budget",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ricavi_overview_competenza": {
+          "name": "ricavi_overview_competenza",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "personale_overview": {
+          "name": "personale_overview",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "esterni_overview": {
+          "name": "esterni_overview",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "personale_costo_usato": {
+          "name": "personale_costo_usato",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stato": {
+          "name": "stato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ricavi_forecast_du": {
+          "name": "ricavi_forecast_du",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "esterni_costo_usato": {
+          "name": "esterni_costo_usato",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "costi_totali_usati": {
+          "name": "costi_totali_usati",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.eccezione": {
+      "name": "eccezione",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "regola": {
+          "name": "regola",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entita_chiave": {
+          "name": "entita_chiave",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periodo_anno": {
+          "name": "periodo_anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periodo_mese": {
+          "name": "periodo_mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motivo": {
+          "name": "motivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approvata_da": {
+          "name": "approvata_da",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valida_dal": {
+          "name": "valida_dal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valida_fino": {
+          "name": "valida_fino",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creata_il": {
+          "name": "creata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mappa_utente": {
+      "name": "mappa_utente",
+      "schema": "",
+      "columns": {
+        "pm_nome": {
+          "name": "pm_nome",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slack_user_id": {
+          "name": "slack_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ruolo": {
+          "name": "ruolo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'viewer'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.modifica_cella": {
+      "name": "modifica_cella",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ricevuta_il": {
+          "name": "ricevuta_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "quando": {
+          "name": "quando",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "utente": {
+          "name": "utente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foglio": {
+          "name": "foglio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cella": {
+          "name": "cella",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vecchio_valore": {
+          "name": "vecchio_valore",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nuovo_valore": {
+          "name": "nuovo_valore",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "n_celle": {
+          "name": "n_celle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.notifica": {
+      "name": "notifica",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "canale": {
+          "name": "canale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destinatario": {
+          "name": "destinatario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anomalia_id": {
+          "name": "anomalia_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inviata_il": {
+          "name": "inviata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "esito": {
+          "name": "esito",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "thread_ts": {
+          "name": "thread_ts",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payload_hash": {
+          "name": "payload_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "errore": {
+          "name": "errore",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ore_anomalia": {
+      "name": "ore_anomalia",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "codice": {
+          "name": "codice",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "giorni": {
+          "name": "giorni",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "ore_totali": {
+          "name": "ore_totali",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "stato": {
+          "name": "stato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'aperta'"
+        },
+        "creata_il": {
+          "name": "creata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ultima_vista": {
+          "name": "ultima_vista",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "risolta_il": {
+          "name": "risolta_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notificata_il": {
+          "name": "notificata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ore_anomalia_fingerprint_uq": {
+          "name": "ore_anomalia_fingerprint_uq",
+          "columns": [
+            {
+              "expression": "fingerprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ore_controllo": {
+      "name": "ore_controllo",
+      "schema": "",
+      "columns": {
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eseguito_il": {
+          "name": "eseguito_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "segnalazioni": {
+          "name": "segnalazioni",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "utenti_hub": {
+          "name": "utenti_hub",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "ore_controllo_anno_mese_pk": {
+          "name": "ore_controllo_anno_mese_pk",
+          "columns": [
+            "anno",
+            "mese"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ore_eccezione": {
+      "name": "ore_eccezione",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parametri_json": {
+          "name": "parametri_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "motivo": {
+          "name": "motivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approvata_da": {
+          "name": "approvata_da",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valida_dal": {
+          "name": "valida_dal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valida_fino": {
+          "name": "valida_fino",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creata_il": {
+          "name": "creata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.regola": {
+      "name": "regola",
+      "schema": "",
+      "columns": {
+        "codice": {
+          "name": "codice",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descrizione": {
+          "name": "descrizione",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severita": {
+          "name": "severita",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "soglia_json": {
+          "name": "soglia_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "attiva": {
+          "name": "attiva",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "notifica": {
+          "name": "notifica",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "versione": {
+          "name": "versione",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.riga_corrente": {
+      "name": "riga_corrente",
+      "schema": "",
+      "columns": {
+        "foglio": {
+          "name": "foglio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chiave": {
+          "name": "chiave",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dati": {
+          "name": "dati",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "riga_foglio": {
+          "name": "riga_foglio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_snapshot_id": {
+          "name": "ultimo_snapshot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "riga_corrente_foglio_chiave_pk": {
+          "name": "riga_corrente_foglio_chiave_pk",
+          "columns": [
+            "foglio",
+            "chiave"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.run_controllo": {
+      "name": "run_controllo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "avviato_il": {
+          "name": "avviato_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "terminato_il": {
+          "name": "terminato_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origine": {
+          "name": "origine",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "esito": {
+          "name": "esito",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'in_corso'"
+        },
+        "snapshot_id": {
+          "name": "snapshot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "n_variazioni": {
+          "name": "n_variazioni",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "errore": {
+          "name": "errore",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.snapshot_scadenzario": {
+      "name": "snapshot_scadenzario",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "letto_il": {
+          "name": "letto_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "drive_modified_time": {
+          "name": "drive_modified_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drive_version": {
+          "name": "drive_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hash_contenuto": {
+          "name": "hash_contenuto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "n_righe_contratti": {
+          "name": "n_righe_contratti",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "n_righe_movimenti": {
+          "name": "n_righe_movimenti",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "n_variazioni": {
+          "name": "n_variazioni",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.storico_dettaglio": {
+      "name": "storico_dettaglio",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fonte": {
+          "name": "fonte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classe": {
+          "name": "classe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "progetto": {
+          "name": "progetto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contratto": {
+          "name": "contratto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spec_voce": {
+          "name": "spec_voce",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contratto_a_budget": {
+          "name": "contratto_a_budget",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "importo": {
+          "name": "importo",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "importo_pesato": {
+          "name": "importo_pesato",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trimestre": {
+          "name": "trimestre",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.storico_fasi_2027": {
+      "name": "storico_fasi_2027",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "riga": {
+          "name": "riga",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "linea": {
+          "name": "linea",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget": {
+          "name": "budget",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fase": {
+          "name": "fase",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.storico_fasi_coef": {
+      "name": "storico_fasi_coef",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "soglia_mesi": {
+          "name": "soglia_mesi",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fase": {
+          "name": "fase",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coefficiente": {
+          "name": "coefficiente",
+          "type": "numeric(8, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ci_basso": {
+          "name": "ci_basso",
+          "type": "numeric(8, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ci_alto": {
+          "name": "ci_alto",
+          "type": "numeric(8, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "osservazioni": {
+          "name": "osservazioni",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contratti": {
+          "name": "contratti",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.storico_progetti_anno": {
+      "name": "storico_progetti_anno",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "progetto": {
+          "name": "progetto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget": {
+          "name": "budget",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_pesato": {
+          "name": "budget_pesato",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consuntivo": {
+          "name": "consuntivo",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consuntivo_non_a_budget": {
+          "name": "consuntivo_non_a_budget",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.storico_progetti_gruppo": {
+      "name": "storico_progetti_gruppo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "progetto": {
+          "name": "progetto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_pesato": {
+          "name": "budget_pesato",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consuntivo": {
+          "name": "consuntivo",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.storico_sintesi": {
+      "name": "storico_sintesi",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget": {
+          "name": "budget",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_pesato": {
+          "name": "budget_pesato",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consuntivo": {
+          "name": "consuntivo",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consuntivo_non_a_budget": {
+          "name": "consuntivo_non_a_budget",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trimestre": {
+          "name": "trimestre",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.variazione": {
+      "name": "variazione",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "snapshot_id": {
+          "name": "snapshot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foglio": {
+          "name": "foglio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chiave": {
+          "name": "chiave",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prima": {
+          "name": "prima",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dopo": {
+          "name": "dopo",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "campi": {
+          "name": "campi",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "riga_foglio": {
+          "name": "riga_foglio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.budget_riga": {
+      "name": "budget_riga",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versione": {
+          "name": "versione",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "linea": {
+          "name": "linea",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "importo": {
+          "name": "importo",
+          "type": "numeric(16, 6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nota": {
+          "name": "nota",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.budget_versione": {
+      "name": "budget_versione",
+      "schema": "",
+      "columns": {
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versione": {
+          "name": "versione",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descrizione": {
+          "name": "descrizione",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fonte": {
+          "name": "fonte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attiva": {
+          "name": "attiva",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "creata_il": {
+          "name": "creata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "creata_da": {
+          "name": "creata_da",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "budget_versione_anno_versione_pk": {
+          "name": "budget_versione_anno_versione_pk",
+          "columns": [
+            "anno",
+            "versione"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -2,11 +2,12 @@ import { REGOLE_A } from "./gruppoA";
 import { REGOLE_B } from "./gruppoB";
 import { REGOLE_C } from "./gruppoC";
 import { REGOLE_D } from "./gruppoD";
+import { REGOLE_G } from "./gruppoG";
 import { REGOLE_H } from "./gruppoH";
 import { REGOLE_K } from "./gruppoK";
 import type { Contesto, DefinizioneRegola, Grezza, Severita, Soglie } from "./tipi";
 
-export const REGOLE: DefinizioneRegola[] = [...REGOLE_A, ...REGOLE_B, ...REGOLE_C, ...REGOLE_D, ...REGOLE_H, ...REGOLE_K];
+export const REGOLE: DefinizioneRegola[] = [...REGOLE_A, ...REGOLE_B, ...REGOLE_C, ...REGOLE_D, ...REGOLE_G, ...REGOLE_H, ...REGOLE_K];
 
 // Configurazione modificabile dal database (tabella `regola`): attiva, severità, soglie.
 export type ConfigRegola = { attiva: boolean; severita: Severita; soglie: Soglie; notifica: boolean };

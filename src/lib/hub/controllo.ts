@@ -4,7 +4,8 @@ import { oreAnomalia, oreControllo } from "@/db/schema";
 import { creaNotifier } from "@/lib/notifier";
 import { leggiFogli } from "@/lib/scadenzario/google";
 import { caricaEccezioni, opzioniOre } from "./eccezioni";
-import { chiaveNome, controllaOre, hubOre, leggiAssenze, type Anomalia, type RispostaHub } from "./ore";
+import { creaCgdSource } from "@/lib/cgd";
+import { chiaveNome, controllaOre, leggiAssenze, type Anomalia, type RispostaHub } from "./ore";
 
 export type Giorno = { g: string; ore: number };
 export type Prodotta = { fingerprint: string; codice: string; nome: string; anno: number; mese: number; giorni: Giorno[]; oreTotali: number };
@@ -51,7 +52,7 @@ export const etichetta = (c: string) => ETICHETTE[c] ?? c;
 
 export async function eseguiControlloOre(anno: number, mese: number, bu = process.env.HUB_BU ?? "Diego") {
   const db = getDb();
-  const hub = await hubOre(anno, mese);
+  const hub = await creaCgdSource().ore(anno, mese);
   const assenze = await leggiAssenzeMese(anno, mese);
   const prodotte = raggruppa(controllaOre(hub, assenze, opzioniOre(await caricaEccezioni(), bu)), hub);
   const esistenti = await db.select().from(oreAnomalia).where(and(eq(oreAnomalia.anno, anno), eq(oreAnomalia.mese, mese)));
