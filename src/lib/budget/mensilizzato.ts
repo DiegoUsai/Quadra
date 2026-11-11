@@ -35,11 +35,11 @@ export function leggiMensilizzato(testo: string): EsitoLettura {
   const cTot = h.indexOf("totale complessivo");
 
   const righe: RigaBudget[] = [];
-  let linea: string | null = null, totaleFoglio: number | null = null;
+  let linea: string | null = null, totaleFoglio: number | null = null, mensiliFoglio: (number | null)[] | null = null;
   for (const r of celle.slice(hi + 1)) {
     const nome = (r.slice(0, col[0] - 1).find((c) => c.trim() !== "") ?? "").trim(); // nome della linea: prima delle colonne tipo e mesi
     const tipo = (r[col[0] - 1] ?? "").trim();
-    if (norm(nome) === "totale complessivo") { totaleFoglio = cTot >= 0 ? numero(r[cTot] ?? "") : null; break; }
+    if (norm(nome) === "totale complessivo") { totaleFoglio = cTot >= 0 ? numero(r[cTot] ?? "") : null; mensiliFoglio = col.map((i) => numero(r[i] ?? "")); break; }
     if (nome) linea = nome;
     const importi = col.map((i) => numero(r[i] ?? "") ?? 0);
     if (!linea || importi.every((x) => x === 0)) continue;
@@ -52,6 +52,11 @@ export function leggiMensilizzato(testo: string): EsitoLettura {
   }
   if (!righe.length) throw new Error("nessuna riga di budget letta");
   const totale = righe.reduce((a, r) => a + r.importo, 0);
+  // Controllo per mese: le righe devono sommare il totale mensile che il foglio riporta nella riga "Totale complessivo"
+  if (mensiliFoglio) MESI.forEach((nomeMese, i) => {
+    const somma = righe.filter((x) => x.mese === i + 1).reduce((a, x) => a + x.importo, 0), foglio = mensiliFoglio![i];
+    if (foglio !== null && Math.abs(somma - foglio) > 1) avvisi.push(`${nomeMese}: le righe sommano ${somma.toFixed(2)}, la riga Totale complessivo del foglio indica ${foglio.toFixed(2)}`);
+  });
   if (totaleFoglio !== null && Math.abs(totale - totaleFoglio) > 1) avvisi.push(`totale letto ${totale.toFixed(2)} diverso dal totale del foglio ${totaleFoglio.toFixed(2)}`);
   return { righe, totale, avvisi };
 }

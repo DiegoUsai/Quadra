@@ -120,3 +120,17 @@ describe("arrotondamento come negli script storici", () => {
     expect([37932.5, 37933.5, 0.5, 1.5, 2.4, 2.6].map(arrotonda)).toEqual([37932, 37934, 0, 2, 2, 3]);
   });
 });
+
+describe("controllo del totale mensile del foglio", () => {
+  it("segnala il mese in cui le righe non sommano il totale mensile riportato dal foglio", () => {
+    const m = (v: number) => ` ${v.toLocaleString("it-IT", { minimumFractionDigits: 2 })} € `;
+    const t = tabella([
+      riga("Alfa", "Canone", piatto(100)),
+      riga("Beta", "Licenze", [50, ...Array(11).fill("")]),
+      ["Totale complessivo", "", ...piatto(100).map((v, i) => m(v + (i === 0 ? 0 : 0))), m(1250)], // gennaio: il foglio non conta Beta (150 contro 100)
+    ]);
+    const a = leggiMensilizzato(t).avvisi;
+    expect(a).toHaveLength(1);
+    expect(a[0]).toContain("gennaio");
+  });
+});
