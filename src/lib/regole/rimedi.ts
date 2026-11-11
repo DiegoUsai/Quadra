@@ -29,6 +29,7 @@ const RIMEDI: Record<string, string> = {
   C05: "Informativa: il primo o l'ultimo mese è parziale. Di solito è normale e non richiede azione.",
   C06: "Il canone di dicembre è molto sopra il tipico, spesso un conguaglio: se è corretto riconoscilo con un motivo, altrimenti spostalo tra i ricavi a consumo.",
   D01: "Il consuntivo del mese si discosta molto dal budget del progetto: verifica il dato oppure spiega lo scostamento.",
+  D07: "Valuta se questo residuo va nel budget dell'anno prossimo. Quando l'hai deciso usa «Riconosci» con un motivo (messo a budget, escluso perché...): la segnalazione si spegne e a fine anno riparte per il budget successivo.",
   D02: "Ci sono ricavi su un progetto senza budget nell'anno: verifica l'Id Progetto oppure riconosci la voce come non prevista.",
   D04: "Un importo è cambiato molto tra due letture del foglio: verifica che la modifica sia voluta.",
   D05: "Il contratto scade a breve ma produce ancora ricavi e non ha un successore nel progetto: prepara il rinnovo o registra la proroga.",

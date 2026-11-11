@@ -3,13 +3,13 @@ import { redirect } from "next/navigation";
 
 export default async function Home() {
   const s = await auth();
-  if (s || authSaltata()) redirect("/schede");
+  if (s || authSaltata()) redirect("/anomalie");
   return (
     <main className="accesso">
       <img src="/brand/quadra-mark-adaptive.svg" alt="" width={56} height={56} />
       <h1>Quadra</h1>
-      <p>Budget e consuntivo della BU Documentale.</p>
-      <form action={async () => { "use server"; await signIn("google", { redirectTo: "/schede" }); }}>
+      <p>Consuntivo, budget e forecast della BU Documentale.</p>
+      <form action={async () => { "use server"; await signIn("google", { redirectTo: "/anomalie" }); }}>
         <button type="submit" className="btn primary">Accedi con l’account Google aziendale</button>
       </form>
     </main>

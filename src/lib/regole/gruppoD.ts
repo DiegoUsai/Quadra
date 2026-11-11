@@ -1,4 +1,4 @@
-import type { DefinizioneRegola, Grezza } from "./tipi";
+import type { Contratto, DefinizioneRegola, Grezza } from "./tipi";
 import { attivo, daContratto, idDi, isData, num, parti, s, unificati } from "./util";
 
 // Gruppo D: budget contro consuntivo (specifiche 7.4). Il confronto è a livello di Id Progetto (5.4).
@@ -62,6 +62,38 @@ export const REGOLE_D: DefinizioneRegola[] = [
       for (const [k, v] of ricaviProgettoMese(ctx)) { const [p, mm] = k.split("|"); if (mm.startsWith(String(anno))) tot.set(p, (tot.get(p) ?? 0) + v); }
       return [...tot].filter(([p, v]) => !conBudget.has(p) && !esclusi.has(p) && v > Number(t.importoMinimo))
         .map(([p, v]) => grezzaProgetto(`${p}|${anno}`, undefined, `Ricavi ${anno} di ${arr(v)} senza budget per il progetto`, { ricavi: arr(v), anno, progetto: p }));
+    },
+  },
+  {
+    // Promemoria per il budget (richiesta di Diego, 09/11/2026): ogni progetto non chiuso con residuo da lavorare va valutato per il budget
+    // dell'anno dopo. Non c'è modo di sapere in automatico se è già a budget (il budget 2027 è per riga, non per Id Progetto): la spunta è
+    // «Riconosci» con un motivo (messo a budget, escluso). La chiave contiene l'anno del budget, così il ciclo successivo la riapre.
+    codice: "D07", nome: "Residuo aperto da mettere a budget", gruppo: "D", severita: "media",
+    soglie: { residuoMinimo: 1000, stati: ["Budget", "Da contrattualizzare", "Contrattualizzato"], lineeEscluse: ["Socio-sanitario"] },
+    descrizione: "Progetto con contratti non chiusi (attivi, non passivi) e da lavorare sopra la soglia: da valutare per il budget dell'anno successivo. Il messaggio indica lo stato dei contratti. Si spunta con «Riconosci» e un motivo (messo a budget, escluso).",
+    esegui: (ctx, t) => {
+      const anno = annoDi(ctx.oggi) + 1, stati = t.stati as string[], esclusi = progettiEsclusi(ctx, t.lineeEscluse as string[]);
+      type Acc = { residuo: number; ids: Set<string>; stati: Map<string, number>; fine: string | null; top: Contratto; topRes: number };
+      const per = new Map<string, Acc>();
+      for (const c of ctx.contratti) {
+        const r = num(c.d.da_lavorare) ?? 0, p = s(c.d.id_progetto);
+        if (r <= 0 || !p || esclusi.has(p) || s(c.d.attivo_passivo) === "Passivo" || !stati.includes(s(c.d.stato))) continue;
+        const a = per.get(p) ?? { residuo: 0, ids: new Set<string>(), stati: new Map<string, number>(), fine: null, top: c, topRes: 0 };
+        a.residuo += r; a.ids.add(idDi(c)); a.stati.set(s(c.d.stato), (a.stati.get(s(c.d.stato)) ?? 0) + 1);
+        if (isData(c.d.data_fine) && (!a.fine || c.d.data_fine > a.fine)) a.fine = c.d.data_fine;
+        if (r > a.topRes) { a.top = c; a.topRes = r; }
+        per.set(p, a);
+      }
+      const data = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+      return [...per].filter(([, a]) => a.residuo > Number(t.residuoMinimo)).map(([p, a]) => {
+        const stato = [...a.stati].map(([st, n]) => `${st}${a.stati.size > 1 || n > 1 ? ` (${n})` : ""}`).join(", ");
+        const scaduto = !!a.fine && a.fine < ctx.oggi;
+        return {
+          entitaTipo: "contratto", entitaChiave: `${p}|${anno}`, foglio: "Contratti Attivi", rigaFoglio: a.top.rigaFoglio, pm: s(a.top.d.pm) || null,
+          messaggio: `Residuo da lavorare ${Math.round(a.residuo).toLocaleString("it-IT")} € su ${a.ids.size} ${a.ids.size === 1 ? "contratto" : "contratti"} (stato: ${stato}); ${a.fine ? `fine ${data(a.fine)}${scaduto ? ", già scaduta" : ""}` : "senza data fine"}. Da valutare per il budget ${anno}`,
+          valori: { progetto: p, anno, residuo: arr(a.residuo), contratti: [...a.ids], stati: Object.fromEntries(a.stati), fine: a.fine, scaduto },
+        } as Grezza;
+      });
     },
   },
   {
