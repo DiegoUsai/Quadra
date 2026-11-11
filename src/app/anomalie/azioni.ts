@@ -22,7 +22,7 @@ async function cambia(id: number, a: string, nota: string | null, extra: Partial
     db.insert(anomaliaStorico).values({ anomaliaId: id, utente: chi, da: prima.stato, a, nota }),
     db.insert(auditLog).values({ utente: chi, azione: "anomalia." + a, entita: `anomalia:${id}`, primaJson: { stato: prima.stato }, dopoJson: { stato: a, nota } }),
   ]);
-  revalidatePath("/anomalie");
+  revalidatePath("/anomalie"); revalidatePath("/budget/da-mettere");
 }
 
 export async function prendiInCarico(formData: FormData) {

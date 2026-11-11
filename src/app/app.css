@@ -18,3 +18,4 @@ body { margin: 0; font-family: var(--font-anthropic-sans); font-size: var(--cds-
   .topbar .utente { margin-left: auto; order: 2; }
 }
 .btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; text-decoration: none; }
+.subnav { display: flex; gap: 1.25rem; padding: .5rem max(1rem, calc((100% - 1180px) / 2)); border-bottom: 1px solid var(--color-border-line); overflow-x: auto; white-space: nowrap; }

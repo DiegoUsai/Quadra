@@ -10,27 +10,29 @@ import Barra from "../Barra";
 import { prendiInCarico, riconosci, risolvi } from "./azioni";
 import "./anomalie.css";
 
-export const dynamic = "force-dynamic";
-
 const SEVERITA = ["bloccante", "alta", "media", "info"] as const;
 const STATI = ["aperta", "in_carico", "riaperta", "riconosciuta", "risolta"] as const;
 const ETICHETTA: Record<string, string> = { bloccante: "Bloccante", alta: "Alta", media: "Media", info: "Info", in_carico: "In carico", riconosciuta: "Riconosciuta", da_trattare: "Da trattare" };
 const nome = (v: string) => ETICHETTA[v] ?? v.charAt(0).toUpperCase() + v.slice(1);
 const REGOLA = new Map(REGOLE.map((r) => [r.codice, r]));
 
-type Filtri = { severita?: string; regola?: string; stato?: string; pm?: string; q?: string };
+export type Filtri = { severita?: string; regola?: string; stato?: string; pm?: string; q?: string };
 type Riga = typeof anomalia.$inferSelect;
 
 const Segno = ({ v }: { v: string }) => <span className={`sev-segno sev-${v}`} aria-hidden="true" />;
 
-export default async function Anomalie({ searchParams }: { searchParams: Promise<Filtri> }) {
+// Una sola lista per due sezioni: Consuntivo (tutte le regole tranne D07) e Budget (solo D07, il promemoria del residuo da mettere a budget).
+export default async function Lista({ searchParams, ambito }: { searchParams: Promise<Filtri>; ambito: "consuntivo" | "budget" }) {
   const f = await searchParams;
+  const base = ambito === "budget" ? "/budget/da-mettere" : "/anomalie";
+  const ambitoSql = ambito === "budget" ? sql`${anomalia.regola} = 'D07'` : sql`${anomalia.regola} <> 'D07'`;
+  const regole = REGOLE.filter((r) => (ambito === "budget") === (r.codice === "D07"));
   const s = await auth();
   const puoAgire = ["admin", "editor"].includes(s?.user?.ruolo ?? "") || authSaltata();
   const db = getDb();
   // Per impostazione predefinita si vedono le anomalie da trattare: le risolte si cercano con il filtro di stato.
   const stato = f.stato ?? "da_trattare";
-  const dovrei: SQL[] = [];
+  const dovrei: SQL[] = [ambitoSql];
   if (stato === "da_trattare") dovrei.push(sql`${anomalia.stato} in ('aperta','in_carico','riaperta')`);
   else if (stato !== "tutte") dovrei.push(eq(anomalia.stato, stato));
   if (f.severita) dovrei.push(eq(anomalia.severita, f.severita));
@@ -41,12 +43,12 @@ export default async function Anomalie({ searchParams }: { searchParams: Promise
   const idFoglio = process.env.SCADENZARIO_SPREADSHEET_ID;
   const [righe, conteggi, pm, gid] = await Promise.all([
     db.select().from(anomalia).where(and(...dovrei)).orderBy(sql`case ${anomalia.severita} when 'bloccante' then 0 when 'alta' then 1 when 'media' then 2 else 3 end`, desc(anomalia.id)).limit(200),
-    db.select({ severita: anomalia.severita, n: sql<number>`count(*)::int` }).from(anomalia).where(sql`${anomalia.stato} in ('aperta','in_carico','riaperta')`).groupBy(anomalia.severita),
-    db.selectDistinct({ pm: anomalia.pm }).from(anomalia).orderBy(anomalia.pm),
+    db.select({ severita: anomalia.severita, n: sql<number>`count(*)::int` }).from(anomalia).where(and(ambitoSql, sql`${anomalia.stato} in ('aperta','in_carico','riaperta')`)).groupBy(anomalia.severita),
+    db.selectDistinct({ pm: anomalia.pm }).from(anomalia).where(ambitoSql).orderBy(anomalia.pm),
     idFoglio ? gidFogli(idFoglio).catch(() => null) : Promise.resolve(null),
   ]);
   const n = (sev: string) => conteggi.find((c) => c.severita === sev)?.n ?? 0;
-  const href = (p: Partial<Filtri>) => "/anomalie?" + new URLSearchParams(Object.entries({ ...f, ...p }).filter(([, v]) => v) as [string, string][]).toString();
+  const href = (p: Partial<Filtri>) => `${base}?` + new URLSearchParams(Object.entries({ ...f, ...p }).filter(([, v]) => v) as [string, string][]).toString();
   // Link che apre il foglio sulla riga dell'anomalia, già selezionata.
   const linkFoglio = (a: Riga) => idFoglio && gid && a.foglio && a.rigaFoglio && gid[a.foglio] !== undefined
     ? `https://docs.google.com/spreadsheets/d/${idFoglio}/edit#gid=${gid[a.foglio]}&range=${a.rigaFoglio}:${a.rigaFoglio}` : null;
@@ -54,12 +56,14 @@ export default async function Anomalie({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <Barra corrente="/anomalie" />
+      <Barra corrente={base} />
       <main className="pagina">
-        <h1>Anomalie</h1>
-        <p className="sottotitolo">Le anomalie da trattare, per gravità. La correzione si fa sul foglio: «Apri nel foglio» porta alla riga.</p>
+        <h1>{ambito === "budget" ? "Da mettere a budget" : "Anomalie"}</h1>
+        <p className="sottotitolo">{ambito === "budget"
+          ? "Progetti non chiusi con residuo da lavorare: valuta se vanno nel budget dell'anno prossimo. Quando hai deciso usa «Riconosci» con un motivo (messo a budget, escluso): la segnalazione si spegne e riparte con il budget successivo."
+          : "Le anomalie da trattare, per gravità. La correzione si fa sul foglio: «Apri nel foglio» porta alla riga."}</p>
 
-        <div className="conteggi" role="group" aria-label="Anomalie da trattare per gravità">
+        <div className="conteggi" role="group" aria-label={ambito === "budget" ? "Segnalazioni da trattare per gravità" : "Anomalie da trattare per gravità"}>
           {SEVERITA.map((v) => (
             <div key={v}><span className="n">{n(v)}</span><span className="et"><Segno v={v} />{nome(v)}</span></div>
           ))}
@@ -72,18 +76,20 @@ export default async function Anomalie({ searchParams }: { searchParams: Promise
           <label>Stato
             <select name="stato" defaultValue={stato} className="campo">
               {["da_trattare", ...STATI, "tutte"].map((v) => <option key={v} value={v}>{nome(v)}</option>)}</select></label>
-          <label className="largo">Tipo di anomalia
-            <select name="regola" defaultValue={f.regola ?? ""} className="campo"><option value="">Tutte</option>
-              {["A", "B", "C", "D", "H", "K"].map((g) => <option key={g} value={g}>Tutto il gruppo {g}</option>)}
-              {REGOLE.map((r) => <option key={r.codice} value={r.codice}>{r.nome} ({r.codice})</option>)}</select></label>
+          {ambito === "consuntivo" && (
+            <label className="largo">Tipo di anomalia
+              <select name="regola" defaultValue={f.regola ?? ""} className="campo"><option value="">Tutte</option>
+                {["A", "B", "C", "D", "H", "K"].map((g) => <option key={g} value={g}>Tutto il gruppo {g}</option>)}
+                {regole.map((r) => <option key={r.codice} value={r.codice}>{r.nome} ({r.codice})</option>)}</select></label>
+          )}
           <label>PM
             <select name="pm" defaultValue={f.pm ?? ""} className="campo"><option value="">Tutti</option>
               {pm.filter((x) => x.pm).map((x) => <option key={x.pm} value={x.pm!}>{x.pm}</option>)}</select></label>
-          <label>Cerca contratto
+          <label>{ambito === "budget" ? "Cerca progetto" : "Cerca contratto"}
             <input name="q" defaultValue={f.q ?? ""} className="campo" /></label>
           <div className="comandi">
             <button type="submit" className="btn primary">Filtra</button>
-            <a href="/anomalie" className="btn">Azzera</a>
+            <a href={base} className="btn">Azzera</a>
           </div>
         </form>
 
