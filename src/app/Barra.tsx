@@ -24,7 +24,7 @@ export default async function Barra({ corrente }: { corrente: string }) {
   return (
     <>
       <header className="topbar">
-        <span className="marchio"><img src="/brand/quadra-mark.svg" alt="" width={30} height={30} />Quadra</span>
+        <span className="marchio"><img src="/brand/quadra-mark-adaptive.svg" alt="" width={30} height={30} />Quadra</span>
         <nav aria-label="Sezioni" style={{ display: "flex", gap: 14, flex: 1, marginLeft: 24 }}>
           {SEZIONI.map((x) => link(x.pagine[0][0], x.etichetta, x.id === sezione?.id))}
           {admin && link(REGOLE, "Regole", corrente === REGOLE)}

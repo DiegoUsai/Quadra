@@ -4,7 +4,7 @@
   --cds-border: #dcb594; --cds-surface-popover: #fff6ee; --cds-shadow-popover: 0 4px 14px rgba(42,27,20,.16);
   --cds-radius: 2px; --cds-gap-sm: .5rem; --cds-gap-md: 1rem; --cds-pad-xs: .25rem; --cds-pad-sm: .5rem; --cds-pad-lg: 1.25rem;
   --cds-font-size-caption: .875rem; --cds-font-size-body: 1rem; --cds-font-size-heading: 1.125rem; --cds-font-size-title: 2rem; --cds-font-size-figure: 2.5rem; --cds-font-size-wordmark: 1.375rem;
-  --scala-bassa: #ee7c63; --scala-neutra: #f6ede0; --scala-alta: #5fb894;
+  --scala-bassa: #ee7c63; --scala-neutra: #f6ede0; --scala-alta: #5fb894; --scala-inchiostro: #2a1b14; --color-accent-testo: #b3261e;
   --cds-font-weight-medium: 600; --cds-dur-slow: .3s;
   --cds-chart-axis: #a8826c; --cds-chart-grid: #f0d3bc; --cds-chart-muted: #d4b49c; --cds-text-secondary: #6e4f40;
   --regola-doppia: 3px double var(--color-fg);
@@ -12,10 +12,11 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-fg: #f6e6d8; --color-fg-muted: #c9ae9d; --color-bg: #1b1210; --color-panel: #261a16;
-    --color-border-line: #4a3329; --color-ok: #5fd0a0; --color-warn: #e0a84a; --color-bad: #ff8a7a; --color-accent: #ff8a7a; --color-on-accent: #1b1210;
-    --cds-border: #5a4034; --cds-surface-popover: #33231d; --cds-shadow-popover: 0 4px 14px rgba(0,0,0,.5);
-    --cds-chart-axis: #8f7262; --cds-chart-grid: #3a2a22; --cds-chart-muted: #a08472; --cds-text-secondary: #c9ae9d;
+    --color-fg: #ece5dd; --color-fg-muted: #a9a097; --color-bg: #151311; --color-panel: #1f1c1a;
+    --color-border-line: #35302c; --color-ok: #52c79b; --color-warn: #e0a84a; --color-bad: #ee6a5f; --color-accent: #cf3f34; --color-on-accent: #ffffff; --color-accent-testo: #ee6a5f;
+    --cds-border: #4a423c; --cds-surface-popover: #2a2623; --cds-shadow-popover: 0 4px 14px rgba(0,0,0,.55);
+    --cds-chart-axis: #8f8279; --cds-chart-grid: #2c2825; --cds-chart-muted: #8a7e74; --cds-text-secondary: #a9a097;
+    --scala-bassa: #a5443a; --scala-neutra: #3b3430; --scala-alta: #2a7a60; --scala-inchiostro: #f6ede4;
   }
 }
 body { background: var(--color-bg); color: var(--color-fg); }

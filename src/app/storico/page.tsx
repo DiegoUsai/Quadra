@@ -58,7 +58,7 @@ export default async function Storico({ searchParams }: { searchParams: Promise<
     const rs = await db.select().from(runControllo).where(cond).orderBy(verso(colonne[ord]), desc(runControllo.id)).limit(dim).offset((pagina - 1) * dim);
     intestazioni = [["Avviato", "data"], ["Origine", "origine"], ["Esito", "esito"], ["Variazioni", "variazioni"], ["Errore", null]];
     righe = rs.map((r) => (
-      <tr key={r.id}><td style={cella}>{ora(r.avviatoIl)}</td><td style={cella}>{r.origine}</td><td style={cella}>{r.esito}</td><td style={cella}>{r.nVariazioni ?? 0}</td><td style={cella}>{r.errore ?? ""}</td></tr>
+      <tr key={r.id}><td>{ora(r.avviatoIl)}</td><td>{r.origine}</td><td>{r.esito}</td><td>{r.nVariazioni ?? 0}</td><td>{r.errore ?? ""}</td></tr>
     ));
   } else {
     const cond = and(
@@ -82,9 +82,9 @@ export default async function Storico({ searchParams }: { searchParams: Promise<
       const campi = (v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? [{ campo: "", prima: null, dopo: null }];
       const chi = chiDi(v.foglio, v.rigaFoglio, lettoIl);
       return campi.map((c, i) => (
-        <tr key={`${v.id}-${i}`}><td style={{ ...cella, whiteSpace: "nowrap" }}>{ora(lettoIl)}</td><td style={cella}>{v.foglio}</td><td style={cella}>{v.chiave}</td><td style={cella}>{v.tipo}</td>
-          <td style={cella}>{c.campo}</td><td style={cella}>{mostra(c.prima)}</td><td style={cella}>{mostra(c.dopo)}</td>
-          <td style={cella}>{chi ? `${chi.utente ?? "?"} · ${chi.cella}${chi.vecchioValore != null ? ` · era "${chi.vecchioValore}"` : ""}` : "—"}</td></tr>
+        <tr key={`${v.id}-${i}`}><td style={{ whiteSpace: "nowrap" }}>{ora(lettoIl)}</td><td>{v.foglio}</td><td>{v.chiave}</td><td>{v.tipo}</td>
+          <td>{c.campo}</td><td>{mostra(c.prima)}</td><td>{mostra(c.dopo)}</td>
+          <td>{chi ? `${chi.utente ?? "?"} · ${chi.cella}${chi.vecchioValore != null ? ` · era "${chi.vecchioValore}"` : ""}` : "—"}</td></tr>
       ));
     });
   }
@@ -102,9 +102,9 @@ export default async function Storico({ searchParams }: { searchParams: Promise<
   return (
     <>
     <Barra corrente="/storico" />
-    <main style={{ maxWidth: 1180, margin: "0 auto", padding: 16, fontFamily: "var(--font-anthropic-sans)", color: "var(--color-fg)" }}>
-      <h1 style={{ fontWeight: 400, marginBottom: 4 }}>Import e storico</h1>
-      <p style={{ ...muto, marginTop: 0 }}>Le date sono quelle della lettura dello scadenzario (ora di Roma). Clicca sull&apos;intestazione di una colonna per ordinare.</p>
+    <main className="pagina">
+      <h1>Import e storico</h1>
+      <p className="sottotitolo">Le date sono quelle della lettura dello scadenzario (ora di Roma). Clicca sull&apos;intestazione di una colonna per ordinare.</p>
 
       <nav aria-label="Vista" style={{ display: "flex", gap: 16, margin: "8px 0" }}>
         {([["differenze", "Differenze nello scadenzario"], ["controlli", "Controlli eseguiti"]] as const).map(([v, et]) => (
@@ -112,19 +112,19 @@ export default async function Storico({ searchParams }: { searchParams: Promise<
         ))}
       </nav>
 
-      <form method="get" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end", margin: "12px 0" }}>
+      <form method="get" className="riga-campi">
         <input type="hidden" name="vista" value={vista} />
-        <label>Dal<br /><input type="date" name="dal" defaultValue={dal} className="btn" /></label>
-        <label>Al<br /><input type="date" name="al" defaultValue={al} className="btn" /></label>
+        <label>Dal<input type="date" name="dal" defaultValue={dal} className="campo" /></label>
+        <label>Al<input type="date" name="al" defaultValue={al} className="campo" /></label>
         {vista === "differenze" ? (<>
-          <label>Foglio<br /><select name="foglio" defaultValue={f.foglio ?? ""} className="btn"><option value="">Tutti</option>{opzioni(fogli)}</select></label>
-          <label>Tipo<br /><select name="tipo" defaultValue={f.tipo ?? ""} className="btn"><option value="">Tutti</option>{["nuova", "modificata", "eliminata"].map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
-          <label>Cerca (voce o campo)<br /><input name="q" defaultValue={q} className="btn" placeholder="es. SardegnaCAT" /></label>
+          <label>Foglio<select name="foglio" defaultValue={f.foglio ?? ""} className="campo"><option value="">Tutti</option>{opzioni(fogli)}</select></label>
+          <label>Tipo<select name="tipo" defaultValue={f.tipo ?? ""} className="campo"><option value="">Tutti</option>{["nuova", "modificata", "eliminata"].map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
+          <label>Cerca (voce o campo)<input name="q" defaultValue={q} className="campo" placeholder="es. SardegnaCAT" /></label>
         </>) : (<>
-          <label>Esito<br /><select name="esito" defaultValue={f.esito ?? ""} className="btn"><option value="">Tutti</option>{opzioni(esiti)}</select></label>
-          <label>Origine<br /><select name="origine" defaultValue={f.origine ?? ""} className="btn"><option value="">Tutte</option>{opzioni(origini)}</select></label>
+          <label>Esito<select name="esito" defaultValue={f.esito ?? ""} className="campo"><option value="">Tutti</option>{opzioni(esiti)}</select></label>
+          <label>Origine<select name="origine" defaultValue={f.origine ?? ""} className="campo"><option value="">Tutte</option>{opzioni(origini)}</select></label>
         </>)}
-        <label>Righe per pagina<br /><select name="dim" defaultValue={String(dim)} className="btn">{DIMENSIONI.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
+        <label>Righe per pagina<select name="dim" defaultValue={String(dim)} className="campo">{DIMENSIONI.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
         {f.ord && <input type="hidden" name="ord" value={f.ord} />}{f.dir && <input type="hidden" name="dir" value={f.dir} />}
         <button type="submit" className="btn primary">Filtra</button>
         {filtriAttivi && <a href={`/storico?vista=${vista}`} className="btn">Azzera filtri</a>}
@@ -137,14 +137,14 @@ export default async function Storico({ searchParams }: { searchParams: Promise<
       </p>
 
       {totale > 0 && (
-        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+        <div className="scorri"><table>
           <thead><tr>{intestazioni.map(([et, col]) => col ? (
-            <th key={et} scope="col" style={cella} aria-sort={col === ord ? (dir === "asc" ? "ascending" : "descending") : "none"}>
+            <th key={et} scope="col" aria-sort={col === ord ? (dir === "asc" ? "ascending" : "descending") : "none"}>
               <a href={link({ ord: col, dir: col === ord && dir === "desc" ? "asc" : col === ord ? "desc" : col === "data" || col === "variazioni" ? "desc" : "asc" })} style={{ color: "inherit" }}>{et}{col === ord ? (dir === "asc" ? " ▲" : " ▼") : ""}</a>
             </th>
-          ) : <th key={et} scope="col" style={cella}>{et}</th>)}</tr></thead>
+          ) : <th key={et} scope="col">{et}</th>)}</tr></thead>
           <tbody>{righe}</tbody>
-        </table>
+        </table></div>
       )}
 
       {pagine > 1 && (
@@ -159,5 +159,3 @@ export default async function Storico({ searchParams }: { searchParams: Promise<
   );
 }
 
-const cella: React.CSSProperties = { padding: "4px 8px", borderBottom: "1px solid var(--color-border-line)", textAlign: "left", fontSize: 13 };
-const muto: React.CSSProperties = { color: "var(--color-fg-muted)" };

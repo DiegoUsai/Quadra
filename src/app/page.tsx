@@ -6,7 +6,7 @@ export default async function Home() {
   if (s || authSaltata()) redirect("/anomalie");
   return (
     <main className="accesso">
-      <img src="/brand/quadra-mark.svg" alt="" width={56} height={56} />
+      <img src="/brand/quadra-mark-adaptive.svg" alt="" width={56} height={56} />
       <h1>Quadra</h1>
       <p>Consuntivo, budget e forecast della BU Documentale.</p>
       <form action={async () => { "use server"; await signIn("google", { redirectTo: "/anomalie" }); }}>
