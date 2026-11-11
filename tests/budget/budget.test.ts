@@ -134,3 +134,18 @@ describe("controllo del totale mensile del foglio", () => {
     expect(a[0]).toContain("gennaio");
   });
 });
+
+import { fasiConVersione, sintesiConVersione } from "@/lib/seed/dataset";
+describe("dati delle schede con una versione diversa da quella attiva", () => {
+  const righe = [{ linea: "A", tipo: "Canone", gruppo: "Canone" as const, mese: 1, importo: 100, nota: null }];
+  it("sostituisce solo le righe del 2027 e lascia le altre", () => {
+    const sintesi = [{ anno: "2026", mese: "1", tipo: "Ricavo", gruppo: "Canone", budget: "5" }, { anno: "2027", mese: "1", tipo: "Ricavo", gruppo: "Canone", budget: "999" }];
+    const r = sintesiConVersione(sintesi, righe);
+    expect(r.filter((x) => x.anno === "2026")).toHaveLength(1);
+    expect(r.filter((x) => x.anno === "2027")).toHaveLength(24);
+    expect(r.find((x) => x.anno === "2027" && x.mese === "1" && x.gruppo === "Canone")?.budget).toBe("100");
+  });
+  it("le fasi escono come testo, come le leggono le schede", () => {
+    expect(fasiConVersione(righe)[0]).toEqual({ riga: "A · Canone", linea: "A", gruppo: "Canone", mese: "1", budget: "100", fase: expect.any(String) });
+  });
+});
