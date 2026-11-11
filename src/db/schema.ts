@@ -243,6 +243,25 @@ export const oreControllo = pgTable("ore_controllo", {
   segnalazioni: integer("segnalazioni").notNull().default(0), utentiHub: integer("utenti_hub").notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.anno, t.mese] })]);
 
+// --- Versioni di budget (specifiche 5.1 e 12.2): per ogni anno più versioni, una sola attiva. I dati delle schede
+// (storico_sintesi e storico_fasi_2027 per l'anno) derivano sempre dalla versione attiva. ---
+export const budgetVersione = pgTable("budget_versione", {
+  anno: integer("anno").notNull(), versione: integer("versione").notNull(),
+  descrizione: text("descrizione").notNull(), fonte: text("fonte"), // nome del file, senza percorsi né dati
+  attiva: boolean("attiva").notNull().default(false),
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(), creataDa: text("creata_da"),
+}, (t) => [primaryKey({ columns: [t.anno, t.versione] })]);
+
+export const budgetRiga = pgTable("budget_riga", {
+  id: serial("id").primaryKey(),
+  anno: integer("anno").notNull(), versione: integer("versione").notNull(),
+  linea: text("linea").notNull(),               // riga del budget (progetto o filone), come nel foglio
+  tipo: text("tipo").notNull(),                 // Canone | MEV | Licenze | (vuoto = a consumo)
+  gruppo: text("gruppo").notNull(),             // Canone | Variabile
+  mese: integer("mese").notNull(), importo: numeric("importo", { precision: 16, scale: 6 }).notNull(), // più decimali dei 2 degli importi: serve a riprodurre gli arrotondamenti storici
+  nota: text("nota"),
+});
+
 // Progetti del CGD (HUB) all'ultima lettura: base delle regole G e della pagina Quadratura. Si sostituisce per intero a ogni aggiornamento.
 export const cgdProgetto = pgTable("cgd_progetto", {
   id: integer("id").primaryKey(), // id del progetto sull'HUB

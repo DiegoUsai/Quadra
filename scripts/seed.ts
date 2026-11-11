@@ -51,3 +51,10 @@ await carica(s.contrattiNonABudget, leggiCsv("storico_contratti_non_a_budget.csv
   anno: +r.anno, contratto: r.contratto, progetto: r.progetto, consuntivo: r.consuntivo,
 })));
 console.log("tabelle delle schede caricate");
+
+// Il budget degli anni con versioni deriva dalla versione attiva: dopo aver ricaricato il seed si ricalcola da lì,
+// così un seed vecchio non riporta indietro le schede.
+const { budgetVersione } = await import("../src/db/schema");
+const { rigeneraDerivati } = await import("../src/lib/budget/versioni");
+const { eq } = await import("drizzle-orm");
+for (const v of await db.select().from(budgetVersione).where(eq(budgetVersione.attiva, true))) console.log("budget rigenerato dalla versione attiva:", JSON.stringify(await rigeneraDerivati(v.anno)));

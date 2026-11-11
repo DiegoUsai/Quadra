@@ -1,5 +1,5 @@
 {
-  "id": "2fa2e4c5-2bb9-465d-979c-a92a856600ee",
+  "id": "c10e59c6-1e71-4809-9f21-1f1fc65c6868",
   "prevId": "9e5520f4-03df-436a-a9a2-cf44b818d46a",
   "version": "7",
   "dialect": "postgresql",
@@ -306,64 +306,133 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.cgd_progetto": {
-      "name": "cgd_progetto",
+    "public.budget_riga": {
+      "name": "budget_riga",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
           "notNull": true
         },
-        "nome": {
-          "name": "nome",
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versione": {
+          "name": "versione",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "linea": {
+          "name": "linea",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "ctr": {
-          "name": "ctr",
+        "tipo": {
+          "name": "tipo",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "gruppo": {
+          "name": "gruppo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mese": {
+          "name": "mese",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         },
         "importo": {
           "name": "importo",
           "type": "numeric(14, 2)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "inizio": {
-          "name": "inizio",
-          "type": "date",
+        "nota": {
+          "name": "nota",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "fine": {
-          "name": "fine",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "bloccato": {
-          "name": "bloccato",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "letto_il": {
-          "name": "letto_il",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.budget_versione": {
+      "name": "budget_versione",
+      "schema": "",
+      "columns": {
+        "anno": {
+          "name": "anno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versione": {
+          "name": "versione",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descrizione": {
+          "name": "descrizione",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fonte": {
+          "name": "fonte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attiva": {
+          "name": "attiva",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "creata_il": {
+          "name": "creata_il",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "creata_da": {
+          "name": "creata_da",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "budget_versione_anno_versione_pk": {
+          "name": "budget_versione_anno_versione_pk",
+          "columns": [
+            "anno",
+            "versione"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
