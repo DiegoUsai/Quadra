@@ -163,3 +163,18 @@ describe("D07 residuo aperto da mettere a budget", () => {
     expect(a).toMatchObject({ rigaFoglio: 7, pm: "Carla" });
   });
 });
+
+describe("stato «Chiuso (budget non contrattualizzato)»", () => {
+  it("D05: un contratto in quello stato non conta come successore, uno in Budget o Contrattualizzato sì", () => {
+    const scade = contratto("R", { id_progetto: "PX", data_fine: "2026-12-15" }), m = [movimento("R", "2026-10-01", 5000)];
+    const successore = (stato: string) => contratto("S", { id_progetto: "PX", stato, data_inizio: "2027-01-01", data_fine: "2027-12-31" }, 3);
+    const codici = (stato: string) => eseguiD07(ctxD07([scade, successore(stato)], m)).filter((a) => a.regola === "D05").map((a) => a.entitaChiave);
+    expect(codici("Chiuso (budget non contrattualizzato)")).toEqual(["R"]);
+    expect(codici("Chiuso")).toEqual(["R"]);
+    expect(codici("Contrattualizzato")).toEqual([]);
+  });
+  it("D07 non lo segnala: solo Budget, Da contrattualizzare e Contrattualizzato", () => {
+    const c = ctxD07([contrattoD07("A", { id_progetto: "P1", stato: "Chiuso (budget non contrattualizzato)", da_lavorare: 50000 })]);
+    expect(eseguiD07(c).filter((a) => a.regola === "D07")).toEqual([]);
+  });
+});
