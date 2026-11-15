@@ -182,6 +182,7 @@ export const anomalia = pgTable("anomalia", {
   creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(),
   risoltaIl: timestamp("risolta_il", { withTimezone: true }),
   notificataIl: timestamp("notificata_il", { withTimezone: true }), // ultima notifica Slack; azzerata quando l'anomalia si riapre
+  annoRif: integer("anno_rif"), tipoAnno: text("tipo_anno"), // anno di scadenza del contratto o di rendicontazione, per il filtro (regole/anno.ts)
 }, (t) => [uniqueIndex("anomalia_fingerprint_uq").on(t.fingerprint)]);
 
 export const anomaliaStorico = pgTable("anomalia_storico", {

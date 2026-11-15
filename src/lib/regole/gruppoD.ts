@@ -1,5 +1,5 @@
 import type { Contratto, DefinizioneRegola, Grezza } from "./tipi";
-import { attivo, daContratto, idDi, isData, num, parti, s, unificati } from "./util";
+import { attivo, chiuso, daContratto, idDi, isData, num, parti, s, unificati } from "./util";
 
 // Gruppo D: budget contro consuntivo (specifiche 7.4). Il confronto è a livello di Id Progetto (5.4).
 // D03 (modifica retroattiva su periodo quadrato) e D06 (budget fuori perimetro) dipendono da periodi e perimetro:
@@ -129,7 +129,7 @@ export const REGOLE_D: DefinizioneRegola[] = [
         if (!attivo(c) || escluse.includes(s(c.d.linea_business)) || s(c.d.attivo_passivo) === "Passivo" || !isData(c.d.data_fine) || (ricavi.get(idDi(c)) ?? 0) <= 0) return [];
         const giorni = (new Date(c.d.data_fine + "T00:00:00Z").getTime() - oggi) / 86400000;
         if (giorni < 0 || giorni > Number(t.giorniScadenza)) return [];
-        const successore = ctx.contratti.some((x) => x !== c && x.d.id_progetto === c.d.id_progetto && s(x.d.attivo_passivo) !== "Passivo" && s(x.d.stato) !== "Chiuso" && isData(x.d.data_fine) && x.d.data_fine > (c.d.data_fine as string));
+        const successore = ctx.contratti.some((x) => x !== c && x.d.id_progetto === c.d.id_progetto && s(x.d.attivo_passivo) !== "Passivo" && !chiuso(s(x.d.stato)) && isData(x.d.data_fine) && x.d.data_fine > (c.d.data_fine as string));
         return successore ? [] : [daContratto(c, { messaggio: `Scade il ${c.d.data_fine} con ricavi recenti e nessun contratto successivo nel progetto`, valori: { fine: c.d.data_fine, ricaviRecenti: arr(ricavi.get(idDi(c)) ?? 0), progetto: c.d.id_progetto } })];
       });
     },
