@@ -2,6 +2,7 @@ import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { anomalia, anomaliaStorico, cgdProgetto, correzione, eccezione, regola, rigaCorrente, snapshotScadenzario, storicoDettaglio, variazione } from "@/db/schema";
 import { REGOLE, eseguiRegole, type Anomalia, type ConfigRegola } from "./indice";
+import { annoRifDi, indiceFine } from "./anno";
 import type { Contesto, Dati } from "./tipi";
 
 const pezzi = <T,>(x: T[], n = 400) => Array.from({ length: Math.ceil(x.length / n) }, (_, i) => x.slice(i * n, (i + 1) * n));
@@ -65,7 +66,8 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
   for (const r of await db.select().from(regola))
     cfg[r.codice] = { attiva: r.attiva, severita: r.severita as ConfigRegola["severita"], soglie: r.sogliaJson as Record<string, unknown>, notifica: r.notifica };
 
-  const prodotte = eseguiRegole(await contestoCorrente(oggi), cfg);
+  const ctx = await contestoCorrente(oggi), fine = indiceFine(ctx);
+  const prodotte = eseguiRegole(ctx, cfg);
   const esistenti = new Map((await db.select().from(anomalia)).map((a) => [a.fingerprint, a]));
   const eccezioni = await db.select().from(eccezione);
   const correzioni = await db.select().from(correzione).where(eq(correzione.attiva, true));
@@ -73,24 +75,25 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
   const viste = new Set<string>();
   const nuove: (typeof anomalia.$inferInsert)[] = [];
   const cambi: { id: number; stato: string; nota?: string }[] = [];
-  const aggiorna: { id: number; a: Anomalia }[] = [];
+  const aggiorna: { id: number; a: Anomalia; anno: ReturnType<typeof annoRifDi> }[] = [];
   const viste2: number[] = []; // anomalie ancora presenti: si aggiorna solo l'ultimo snapshot visto
 
   for (const a of prodotte) {
     if (viste.has(a.fingerprint)) continue; // due righe con la stessa chiave logica: una sola segnalazione
     viste.add(a.fingerprint);
     const conEccezione = eccezioni.some((e) => attiva(e, a, oggi)) || correzioni.some((c) => correzioneCopre(c, a, oggi));
-    const e = esistenti.get(a.fingerprint);
+    const e = esistenti.get(a.fingerprint), anno = annoRifDi(a, fine);
     if (!e) {
       nuove.push({
         fingerprint: a.fingerprint, regola: a.regola, entitaTipo: a.entitaTipo, entitaChiave: a.entitaChiave, periodoAnno: a.periodo?.anno ?? null, periodoMese: a.periodo?.mese ?? null,
         severita: a.severita, messaggio: a.messaggio, valoriJson: a.valori ?? null, stato: conEccezione ? "riconosciuta" : "aperta",
         primaVistaSnapshot: snapshotId, ultimaVistaSnapshot: snapshotId, rigaFoglio: a.rigaFoglio ?? null, foglio: a.foglio, pm: a.pm ?? null,
-        notificataIl: silenzioso(a, noti) ? new Date() : null,
+        notificataIl: silenzioso(a, noti) ? new Date() : null, annoRif: anno?.anno ?? null, tipoAnno: anno?.tipo ?? null,
       });
       continue;
     }
-    if (e.messaggio !== a.messaggio || e.severita !== a.severita || e.rigaFoglio !== (a.rigaFoglio ?? null) || e.pm !== (a.pm ?? null)) aggiorna.push({ id: e.id, a });
+    if (e.messaggio !== a.messaggio || e.severita !== a.severita || e.rigaFoglio !== (a.rigaFoglio ?? null) || e.pm !== (a.pm ?? null)
+      || e.annoRif !== (anno?.anno ?? null) || e.tipoAnno !== (anno?.tipo ?? null)) aggiorna.push({ id: e.id, a, anno }); // l'anno cambia se cambia la data fine del contratto
     viste2.push(e.id);
     if (e.stato === "risolta") cambi.push({ id: e.id, stato: "riaperta", nota: "ricomparsa dopo la risoluzione" });
     else if (e.stato === "riconosciuta" && !conEccezione) cambi.push({ id: e.id, stato: "riaperta", nota: "eccezione scaduta o rimossa" });
@@ -104,8 +107,8 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
   for (const g of pezzi(nuove)) ops.push(db.insert(anomalia).values(g));
   for (const g of pezzi(viste2))
     ops.push(db.update(anomalia).set({ ultimaVistaSnapshot: snapshotId }).where(inArray(anomalia.id, g)));
-  for (const { id, a } of aggiorna)
-    ops.push(db.update(anomalia).set({ messaggio: a.messaggio, valoriJson: a.valori ?? null, severita: a.severita, rigaFoglio: a.rigaFoglio ?? null, pm: a.pm ?? null }).where(eq(anomalia.id, id)));
+  for (const { id, a, anno } of aggiorna)
+    ops.push(db.update(anomalia).set({ messaggio: a.messaggio, valoriJson: a.valori ?? null, severita: a.severita, rigaFoglio: a.rigaFoglio ?? null, pm: a.pm ?? null, annoRif: anno?.anno ?? null, tipoAnno: anno?.tipo ?? null }).where(eq(anomalia.id, id)));
   for (const stato of ["riaperta", "riconosciuta", "risolta"]) {
     const ids = cambi.filter((c) => c.stato === stato).map((c) => c.id);
     for (const g of pezzi(ids)) {

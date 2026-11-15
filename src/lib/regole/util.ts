@@ -13,6 +13,9 @@ export function mesiTra(inizio: string, fine: string): number {
   return (f.a - i.a) * 12 + f.m - i.m + (f.g >= i.g - 1 ? 1 : 0);
 }
 
+// Due stati chiusi: "Chiuso" e "Chiuso (budget non contrattualizzato)" (voci di budget mai diventate contratto, aggiunto al Lookup il 15/11/2026).
+// Dove conta "è chiuso" (per esempio un contratto successore) valgono entrambi; A10 invece guarda solo "Chiuso": una voce di budget chiusa ha date future per natura.
+export const chiuso = (stato: string) => stato.startsWith("Chiuso");
 export const attivo = (c: Contratto) => s(c.d.stato) === "Contrattualizzato";
 export const importoOk = (v: unknown) => typeof v === "number";
 
