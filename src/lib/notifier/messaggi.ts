@@ -47,6 +47,14 @@ export function messaggioNuove(canale: string, nuove: AnomaliaNotifica[], c: Con
   return { canale, testo: `${titolo}: ${conteggi(nuove)}`, blocchi };
 }
 
+// Invio a mano di una sola anomalia (pulsante «Invia su Slack» sulla riga): stesso contenuto riservato delle altre notifiche, senza importi.
+export function messaggioSingola(canale: string, a: AnomaliaNotifica, c: Contesto): Messaggio {
+  const titolo = "Segnalazione da Quadra", pagina = a.regola === "D07" ? "/budget/da-mettere" : "/anomalie";
+  const blocchi: unknown[] = [intestazione(titolo), sezione(riga(a, c))];
+  if (c.baseUrl) blocchi.push(bottone("Apri in Quadra", `${c.baseUrl}${pagina}?stato=tutte&q=${encodeURIComponent(a.entitaChiave)}`));
+  return { canale, testo: `${titolo}: ${a.nomeRegola} (${a.regola}) · ${dove(a).principale}`, blocchi };
+}
+
 export function messaggioRisoluzione(canale: string, thread: string, risolte: AnomaliaNotifica[]): Messaggio {
   const righe = ordina(risolte).slice(0, 10).map((a) => `• ${esc(a.nomeRegola)} (${a.regola}) · ${esc(dove(a).principale)}`).join("\n");
   const testo = `:white_check_mark: ${risolte.length === 1 ? "Risolta" : `Risolte ${risolte.length}`} dopo l'ultimo controllo:\n${righe}${risolte.length > 10 ? `\n…e altre ${risolte.length - 10}.` : ""}`;

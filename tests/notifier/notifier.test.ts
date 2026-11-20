@@ -128,3 +128,34 @@ describe("più PM nella stessa cella", () => {
     expect(testi(messaggioNuove("C1", [an(1, { pm: "Anna/Bruno" })], ctx))).toContain("PM <@U123> e Bruno");
   });
 });
+
+import { messaggioSingola } from "@/lib/notifier/messaggi";
+import { controllaInvio } from "@/lib/notifier/notifiche";
+
+describe("invio a mano di una sola anomalia", () => {
+  it("un solo messaggio con regola, contratto, PM menzionato e link alla riga; nessun importo", () => {
+    const a = an(1, { severita: "alta", messaggio: "Importo diverso: scadenzario 100.000 €, HUB 90.000 €", valoriJson: { contratto: "CTR_1" } } as Partial<AnomaliaNotifica>);
+    const m = messaggioSingola("C1", a, ctx);
+    const t = testi(m);
+    expect(m.canale).toBe("C1");
+    expect(t).toContain("Segnalazione da Quadra");
+    expect(t).toContain("Data inizio mancante");
+    expect(t).toContain("<@U123>"); // il PM Anna ha un ID Slack
+    expect(t).toContain("https://quadra.example.com/anomalie?stato=tutte&q=CTR_1");
+    expect(t).not.toMatch(/100\.000|90\.000|€/); // gli importi restano in Quadra
+  });
+  it("D07 rimanda alla pagina Da mettere a budget", () => {
+    expect(testi(messaggioSingola("C1", an(2, { regola: "D07" }), ctx))).toContain("/budget/da-mettere?stato=tutte");
+  });
+  it("senza indirizzo dell'app niente bottone (Slack accetta solo indirizzi assoluti)", () => {
+    expect(testi(messaggioSingola("C1", an(3), { ...ctx, baseUrl: "" }))).not.toContain("apri_quadra");
+  });
+  it("guardie: solo anomalie da trattare, Slack configurato e canale impostato", () => {
+    expect(controllaInvio({ stato: "aperta" }, { nome: "slack" }, "C1")).toBeNull();
+    expect(controllaInvio({ stato: "riaperta" }, { nome: "slack" }, "C1")).toBeNull();
+    expect(controllaInvio({ stato: "risolta" }, { nome: "slack" }, "C1")).toContain("non è più da trattare");
+    expect(controllaInvio({ stato: "riconosciuta" }, { nome: "slack" }, "C1")).toContain("non è più da trattare");
+    expect(controllaInvio({ stato: "aperta" }, { nome: "console" }, "C1")).toContain("Slack non è configurato");
+    expect(controllaInvio({ stato: "aperta" }, { nome: "slack" }, "")).toContain("canale");
+  });
+});

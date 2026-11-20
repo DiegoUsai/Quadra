@@ -1,13 +1,14 @@
-import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
-import { anomalia, runControllo } from "@/db/schema";
+import { anomalia, notifica, runControllo } from "@/db/schema";
 import { auth, authSaltata } from "@/auth";
 import { REGOLE } from "@/lib/regole/indice";
 import { rimedioDi } from "@/lib/regole/rimedi";
 import { dove } from "@/lib/regole/descrivi";
 import { gidFogli } from "@/lib/scadenzario/google";
 import Barra from "../Barra";
-import { prendiInCarico, riconosci, risolvi } from "./azioni";
+import { inviaSlack, prendiInCarico, riconosci, risolvi } from "./azioni";
+import BottoneInvia from "./BottoneInvia";
 import BottoneControlla from "../ore/BottoneControlla";
 import { aggiornaDaMettere } from "../budget/da-mettere/azioni";
 import "./anomalie.css";
@@ -54,6 +55,9 @@ export default async function Lista({ searchParams, ambito }: { searchParams: Pr
     idFoglio ? gidFogli(idFoglio).catch(() => null) : Promise.resolve(null),
     db.select({ quando: sql<Date | null>`max(${runControllo.avviatoIl})` }).from(runControllo).where(sql`${runControllo.esito} in ('letto','nessuna_modifica')`),
   ]);
+  // Ultimo invio su Slack di ogni anomalia mostrata (automatico o a mano), per scriverlo nella riga.
+  const inviate = righe.length ? await db.select({ id: notifica.anomaliaId, quando: sql<Date>`max(${notifica.inviataIl})` }).from(notifica).where(and(inArray(notifica.anomaliaId, righe.map((r) => r.id)), eq(notifica.esito, "ok"))).groupBy(notifica.anomaliaId) : [];
+  const quandoInviata = new Map(inviate.map((x) => [x.id, new Date(x.quando)]));
   const n = (sev: string) => conteggi.find((c) => c.severita === sev)?.n ?? 0;
   const href = (p: Partial<Filtri>) => `${base}?` + new URLSearchParams(Object.entries({ ...f, ...p }).filter(([, v]) => v) as [string, string][]).toString();
   // Link che apre il foglio sulla riga dell'anomalia, già selezionata.
@@ -70,9 +74,9 @@ export default async function Lista({ searchParams, ambito }: { searchParams: Pr
           ? "Progetti non chiusi con residuo da lavorare: valuta se vanno nel budget dell'anno prossimo. Quando hai deciso usa «Riconosci» con un motivo (messo a budget, escluso): la segnalazione si spegne e riparte con il budget successivo."
           : "Le anomalie da trattare, per gravità. La correzione si fa sul foglio: «Apri nel foglio» porta alla riga."}</p>
 
+        {f.errore && <p role="alert" style={{ fontWeight: 600, color: "var(--color-danger, #b3261e)" }}>Operazione non riuscita: {f.errore}</p>}
+        {f.esito && <p role="status" style={{ fontWeight: 600 }}>{f.esito}</p>}
         {ambito === "budget" && (<>
-          {f.errore && <p role="alert" style={{ fontWeight: 600, color: "var(--color-danger, #b3261e)" }}>Aggiornamento non riuscito: {f.errore}</p>}
-          {f.esito && <p role="status" style={{ fontWeight: 600 }}>{f.esito}</p>}
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", margin: "0 0 12px" }}>
             {puoAgire && (
               <form action={aggiornaDaMettere} style={{ display: "contents" }}>
@@ -127,7 +131,7 @@ export default async function Lista({ searchParams, ambito }: { searchParams: Pr
             <tbody>{righe.map((a) => {
               const r = REGOLA.get(a.regola), d = dove(a), link = linkFoglio(a), rimedio = rimedioDi(a.regola);
               return (
-                <tr key={a.id}>
+                <tr key={a.id} id={`a${a.id}`}>
                   <td data-label="Severità"><span className="sev"><Segno v={a.severita} />{nome(a.severita)}</span></td>
                   <td data-label="Anomalia" className="corpo">
                     <span className="titolo" title={r?.descrizione}>{r?.nome ?? a.regola}</span> <span className="muto">({a.regola})</span>
@@ -144,11 +148,12 @@ export default async function Lista({ searchParams, ambito }: { searchParams: Pr
                       ? <a href={link} target="_blank" rel="noopener noreferrer" className="btn">Apri nel foglio ↗{a.rigaFoglio ? ` (riga ${a.rigaFoglio})` : ""}</a>
                       : <div className="muto">{a.foglio ?? ""}{a.rigaFoglio ? `, riga ${a.rigaFoglio}` : ""}</div>}
                   </td>
-                  <td data-label="Stato">{nome(a.stato)}{a.assegnataA ? <div className="muto">{a.assegnataA}</div> : null}</td>
+                  <td data-label="Stato">{nome(a.stato)}{a.assegnataA ? <div className="muto">{a.assegnataA}</div> : null}{quandoInviata.has(a.id) && <div className="muto">Su Slack il {quandoInviata.get(a.id)!.toLocaleDateString("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit" })}</div>}</td>
                   <td data-label="Azioni">
                     {puoAgire && !["risolta", "riconosciuta"].includes(a.stato) ? (
                       <div className="azioni">
                         {a.stato !== "in_carico" && <form action={prendiInCarico}><input type="hidden" name="id" value={a.id} /><button className="btn" type="submit">Prendi in carico</button></form>}
+                        <form action={inviaSlack}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="ritorno" value={href({})} /><BottoneInvia etichetta={quandoInviata.has(a.id) ? "Invia di nuovo su Slack" : "Invia su Slack"} /></form>
                         <details><summary className="btn">Risolvi</summary>
                           <div className="modulo"><form action={risolvi}><input type="hidden" name="id" value={a.id} />
                             <input name="nota" required placeholder="Nota di risoluzione" aria-label="Nota di risoluzione" className="campo" /><button className="btn primary" type="submit">Conferma</button></form></div></details>
