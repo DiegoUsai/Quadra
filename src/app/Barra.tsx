@@ -4,7 +4,7 @@ import { auth, signOut, authSaltata } from "@/auth";
 // del residuo), Forecast (da definire). Regole resta fuori, solo per l'amministratore. Gli indirizzi delle pagine non cambiano.
 type Pagina = readonly [href: string, etichetta: string, soloAdmin?: boolean];
 const SEZIONI: readonly { id: string; etichetta: string; pagine: readonly Pagina[] }[] = [
-  { id: "consuntivo", etichetta: "Consuntivo", pagine: [["/anomalie", "Anomalie"], ["/ore", "Ore e presenze", true], ["/quadratura", "Quadratura HUB"], ["/storico", "Import e storico"]] },
+  { id: "consuntivo", etichetta: "Consuntivo", pagine: [["/anomalie", "Anomalie"], ["/ore", "Ore e presenze", true], ["/quadratura", "Quadratura HUB"], ["/analisi-contratto", "Analisi contratto"], ["/storico", "Import e storico"]] },
   { id: "budget", etichetta: "Budget", pagine: [["/schede", "Schede"], ["/budget/da-mettere", "Da mettere a budget"]] },
   { id: "forecast", etichetta: "Forecast", pagine: [["/forecast", "Forecast"]] },
 ];
