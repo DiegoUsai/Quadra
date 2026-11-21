@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { confronta } from "@/lib/cgd/confronto";
+import { chiusoOvunque, confronta } from "@/lib/cgd/confronto";
 import { daDettaglio, giornoRoma } from "@/lib/cgd/hub";
 import { numeroCtr, type ProgettoCgd } from "@/lib/cgd/tipi";
 import { eseguiRegole } from "@/lib/regole/indice";
@@ -81,6 +81,23 @@ describe("gruppo G: scadenzario contro HUB", () => {
   it("un contratto senza CTR HUB non entra nel confronto", () => {
     expect(g([con("A", null)], [prog(1, "CTR101")]).map((a) => a.regola)).toEqual(["G01"]); // il progetto HUB resta senza contratto
     expect(confronta([con("A", null)], [prog(1, "CTR101")]).righe).toEqual([]);
+  });
+});
+
+describe("Analisi contratto: contratti chiusi su entrambe le fonti", () => {
+  const chiusi = (cs: ReturnType<typeof con>[], ps: ProgettoCgd[]) => confronta(cs, ps).righe.map((r) => [r.ctr, chiusoOvunque(r)]);
+  it("si nasconde solo chi è chiuso sullo scadenzario e bloccato sull'HUB", () => {
+    expect(chiusi(
+      [con("A", "CTR101", { stato: "Chiuso" }), con("B", "CTR202", { stato: "Chiuso" }), con("C", "CTR303"), con("D", "CTR404", { stato: "Chiuso (budget non contrattualizzato)" })],
+      [prog(1, "CTR101", { bloccato: true }), prog(2, "CTR202"), prog(3, "CTR303", { bloccato: true }), prog(4, "CTR404", { bloccato: true })],
+    )).toEqual([["101", true], ["202", false], ["303", false], ["404", true]]);
+  });
+  it("con più contratti o più progetti sullo stesso CTR servono tutti chiusi", () => {
+    expect(chiusi([con("A", "CTR101", { stato: "Chiuso" }), con("B", "CTR101")], [prog(1, "CTR101", { bloccato: true })])).toEqual([["101", false]]);
+    expect(chiusi([con("A", "CTR101", { stato: "Chiuso" })], [prog(1, "CTR101", { bloccato: true }), prog(2, "CTR101")])).toEqual([["101", false]]);
+  });
+  it("un contratto non agganciato all'HUB non è «chiuso ovunque»", () => {
+    expect(chiusi([con("A", "CTR101", { stato: "Chiuso" })], [])).toEqual([["101", false]]);
   });
 });
 

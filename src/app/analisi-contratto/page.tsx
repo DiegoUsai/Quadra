@@ -4,7 +4,7 @@ import { auth, authSaltata } from "@/auth";
 import { getDb } from "@/db";
 import { cgdProgetto, regola, rigaCorrente } from "@/db/schema";
 import { analizza, datiScadenzario, unisciMensili, type Blocco } from "@/lib/cgd/analisi";
-import { confronta, eur } from "@/lib/cgd/confronto";
+import { chiusoOvunque, confronta, eur } from "@/lib/cgd/confronto";
 import { creaCgdSource } from "@/lib/cgd";
 import type { Dati } from "@/lib/regole/tipi";
 import { REGOLE_G } from "@/lib/regole/gruppoG";
@@ -68,7 +68,10 @@ export default async function AnalisiContratto({ searchParams }: { searchParams:
   const tolleranza = Number.isFinite(tollG04) && tollG04 >= 0 ? tollG04 : 0;
   const contratti = righeDb.map((r) => ({ chiave: r.chiave, rigaFoglio: r.rigaFoglio, d: r.dati as Dati }));
   const progetti = progettiDb.map((p) => ({ id: p.id, nome: p.nome, ctr: p.ctr, importo: p.importo === null ? null : Number(p.importo), inizio: p.inizio, fine: p.fine, bloccato: p.bloccato }));
-  const agganciati = confronta(contratti, progetti).righe.filter((r) => r.hub);
+  // Si nascondono i contratti chiusi sia sullo scadenzario sia sull'HUB (sezione 9.8): non c'è più nulla da quadrare.
+  const tuttiAgganciati = confronta(contratti, progetti).righe.filter((r) => r.hub);
+  const agganciati = tuttiAgganciati.filter((r) => !chiusoOvunque(r));
+  const nascosti = tuttiAgganciati.length - agganciati.length;
   const scelto = agganciati.find((r) => r.ctr === q.ctr);
 
   let errore: string | null = null, risultato: { analisi: ReturnType<typeof analizza>; scad: ReturnType<typeof datiScadenzario>; hub: ReturnType<typeof unisciMensili> } | null = null;
@@ -108,9 +111,9 @@ export default async function AnalisiContratto({ searchParams }: { searchParams:
             <button type="submit" className="btn primary">Analizza</button>
           </Form>
         )}
-        <p style={{ ...muto, margin: "0 0 16px" }}>Sono selezionabili i contratti agganciati all&apos;HUB sul codice CTR ({agganciati.length}); gli altri non hanno un progetto visibile sull&apos;HUB.</p>
+        <p style={{ ...muto, margin: "0 0 16px" }}>Sono selezionabili i contratti agganciati all&apos;HUB sul codice CTR ({agganciati.length}); gli altri non hanno un progetto visibile sull&apos;HUB.{nascosti > 0 && <> Non sono elencati {nascosti === 1 ? "1 contratto chiuso" : `${nascosti} contratti chiusi`} sia sullo scadenzario sia sull&apos;HUB (progetto bloccato).</>}</p>
 
-        {q.ctr && !scelto && progetti.length > 0 && <p role="alert" style={{ fontWeight: 600 }}>Contratto non trovato tra quelli agganciati all&apos;HUB.</p>}
+        {q.ctr && !scelto && progetti.length > 0 && <p role="alert" style={{ fontWeight: 600 }}>Contratto non trovato tra quelli agganciati all&apos;HUB e non chiusi.</p>}
         {errore && <p role="alert" style={{ color: "var(--color-danger, #b3261e)", fontWeight: 600 }}>Lettura dell&apos;HUB non riuscita: {errore}</p>}
 
         {scelto && risultato && (<>
