@@ -1,6 +1,7 @@
 import { eseguiControllo } from "@/lib/scadenzario/controllo";
 import { riepilogoGiornaliero } from "@/lib/notifier/notifiche";
 import { segretoValido } from "@/lib/segreto";
+import { messaggioSicuro } from "@/lib/errori";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -11,6 +12,6 @@ export async function GET(req: Request) {
   const bearer = req.headers.get("authorization")?.replace(/^Bearer /, "") ?? null;
   if (!segretoValido(bearer, process.env.CRON_SECRET)) return new Response("non autorizzato", { status: 401 });
   const controllo = await eseguiControllo("cron", { rivaluta: true });
-  const riepilogo = await riepilogoGiornaliero().catch((e) => ({ errore: e instanceof Error ? e.message : String(e) }));
+  const riepilogo = await riepilogoGiornaliero().catch((e) => ({ errore: messaggioSicuro(e) }));
   return Response.json({ controllo, riepilogo }, { status: controllo.esito === "errore" ? 500 : 200 });
 }

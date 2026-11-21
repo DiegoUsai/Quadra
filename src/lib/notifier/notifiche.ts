@@ -50,17 +50,23 @@ export async function inviaNuove(runId: number | null, notifier: Notifier = crea
     .where(and(inArray(anomalia.stato, ["aperta", "riaperta"]), inArray(anomalia.severita, ["bloccante", "alta"]), isNull(anomalia.notificataIl), eq(regola.notifica, true), eq(regola.attiva, true)));
   if (!righe.length) return { inviate: 0 };
   const { ctx, nomi } = await contesto();
-  const nuove = righe.map((r) => aNotifica({ ...r.a, nomeRegola: null }, nomi));
+  let nuove = righe.map((r) => aNotifica({ ...r.a, nomeRegola: null }, nomi));
+  if (!persisti(notifier)) { await notifier.invia(messaggioNuove(canaleAnomalie(), nuove, ctx)); return { inviate: nuove.length, prova: true }; }
+  // Prenotazione atomica prima dell'invio: il controllo e la lettura del CGD possono girare insieme, e senza questo
+  // passaggio leggerebbero le stesse righe e manderebbero due messaggi. Si invia solo ciò che questo giro ha prenotato.
+  const prenotate = new Set((await db.update(anomalia).set({ notificataIl: new Date() })
+    .where(and(inArray(anomalia.id, nuove.map((a) => a.id)), isNull(anomalia.notificataIl))).returning({ id: anomalia.id })).map((r) => r.id));
+  nuove = nuove.filter((a) => prenotate.has(a.id));
+  if (!nuove.length) return { inviate: 0 };
   const esito = await notifier.invia(messaggioNuove(canaleAnomalie(), nuove, ctx));
-  if (!persisti(notifier)) return { inviate: nuove.length, prova: true };
   if (!esito.ok) {
-    await db.insert(notifica).values({ tipo: "nuove", canale: canaleAnomalie(), runId, esito: "errore", errore: esito.errore });
-    return { inviate: 0, errore: esito.errore }; // restano non notificate: si riprova al controllo successivo
+    await db.batch([
+      db.insert(notifica).values({ tipo: "nuove", canale: canaleAnomalie(), runId, esito: "errore", errore: esito.errore }),
+      db.update(anomalia).set({ notificataIl: null }).where(inArray(anomalia.id, nuove.map((a) => a.id))), // si riprova al controllo successivo
+    ]);
+    return { inviate: 0, errore: esito.errore };
   }
-  await db.batch([
-    db.insert(notifica).values(nuove.map((a) => ({ tipo: "nuove", canale: esito.canale, anomaliaId: a.id, runId, esito: "ok", threadTs: esito.ts }))),
-    db.update(anomalia).set({ notificataIl: new Date() }).where(inArray(anomalia.id, nuove.map((a) => a.id))),
-  ]);
+  await db.insert(notifica).values(nuove.map((a) => ({ tipo: "nuove", canale: esito.canale, anomaliaId: a.id, runId, esito: "ok", threadTs: esito.ts })));
   return { inviate: nuove.length };
 }
 

@@ -52,7 +52,7 @@ export function messaggioSingola(canale: string, a: AnomaliaNotifica, c: Contest
   const titolo = "Segnalazione da Quadra", pagina = a.regola === "D07" ? "/budget/da-mettere" : "/anomalie";
   const blocchi: unknown[] = [intestazione(titolo), sezione(riga(a, c))];
   if (c.baseUrl) blocchi.push(bottone("Apri in Quadra", `${c.baseUrl}${pagina}?stato=tutte&q=${encodeURIComponent(a.entitaChiave)}`));
-  return { canale, testo: `${titolo}: ${a.nomeRegola} (${a.regola}) · ${dove(a).principale}`, blocchi };
+  return { canale, testo: `${titolo}: ${esc(a.nomeRegola)} (${a.regola}) · ${esc(dove(a).principale)}`, blocchi };
 }
 
 export function messaggioRisoluzione(canale: string, thread: string, risolte: AnomaliaNotifica[]): Messaggio {

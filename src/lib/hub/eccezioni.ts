@@ -24,8 +24,15 @@ export async function caricaEccezioni(oggi = new Date().toLocaleDateString("sv-S
   return daRighe(await getDb().select().from(oreEccezione), oggi);
 }
 
+/** Responsabile di BU con cui l'HUB etichetta le ore da controllare: configurazione (HUB_BU), non un nome nel codice. */
+export function buHub(): string {
+  const bu = process.env.HUB_BU?.trim();
+  if (!bu) throw new Error("HUB_BU non impostata: è il «responsabile BU» dell'HUB di cui si controllano le ore");
+  return bu;
+}
+
 /** Opzioni di `controllaOre` a partire dalle eccezioni salvate. */
-export const opzioniOre = (e: Eccezioni, bu = "Diego"): Opzioni => ({
+export const opzioniOre = (e: Eccezioni, bu: string): Opzioni => ({
   escluso: patrono(e.remoti), possibile: patronoPossibile(e.remoti), attese: attese(e.orari),
   ferieSuHub: e.ferieSuHub, nomiEsclusi: e.nomiEsclusi, bu,
 });

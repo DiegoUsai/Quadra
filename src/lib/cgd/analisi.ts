@@ -22,7 +22,7 @@ export function esitoDi(scad: number, hub: number | null, tolleranza: number): E
 }
 
 /** `scad` e `hub` hanno 12 valori (gennaio-dicembre); `hub` null = l'HUB non ha dati per quel blocco o quell'anno. */
-export function bloccoMensile(scad: number[], hub: (number | null)[] | null, tolleranza = 1): Blocco {
+export function bloccoMensile(scad: number[], hub: (number | null)[] | null, tolleranza: number): Blocco {
   const mesi = scad.map((v, i): Mese => {
     const h = hub ? hub[i] : null;
     return { mese: i + 1, scadenzario: cent(v), hub: h === null ? null : cent(h), differenza: h === null ? null : cent(v - h), esito: esitoDi(v, h, tolleranza) };
@@ -75,7 +75,7 @@ export function unisciMensili(l: MensileHub[]): MensileHub {
 
 export type Analisi = { ricavi: Blocco; personale: Blocco; altriCosti: Blocco; mesiSquadrati: number };
 
-export function analizza(scad: DatiScadenzario, hub: MensileHub, tolleranza = 1): Analisi {
+export function analizza(scad: DatiScadenzario, hub: MensileHub, tolleranza: number): Analisi {
   const ricavi = bloccoMensile(scad.ricavi, hub.lavorato, tolleranza);
   const pers = bloccoMensile(scad.personale, hub.personale?.costo ?? null, tolleranza);
   const altri = bloccoMensile(scad.altriCosti, hub.altriCosti, tolleranza);

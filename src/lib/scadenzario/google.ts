@@ -1,6 +1,9 @@
 import { createSign } from "node:crypto";
 import type { Cella } from "./valori";
 
+// Una chiamata bloccata non deve tenere il giro «in corso» fino al limite di Vercel.
+const SECONDI_CHIAMATA = 20;
+
 // Lettura in sola lettura di Drive e Sheets con il service account (specifiche 4.1, 6.1). Nessuna dipendenza esterna:
 // firma JWT con node:crypto. Il token vale un'ora e si riusa finché non scade.
 type Account = { client_email: string; private_key: string; token_uri: string };
@@ -19,7 +22,7 @@ async function token(): Promise<string> {
   const claim = b64(JSON.stringify({ iss: sa.client_email, scope: SCOPE, aud: sa.token_uri, iat: now, exp: now + 3600 }));
   const firma = createSign("RSA-SHA256").update(`${head}.${claim}`).sign(sa.private_key, "base64url");
   const r = await fetch(sa.token_uri, {
-    method: "POST",
+    method: "POST", signal: AbortSignal.timeout(SECONDI_CHIAMATA * 1000),
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${head}.${claim}.${firma}` }),
   });
@@ -32,13 +35,13 @@ async function token(): Promise<string> {
 // Backoff esponenziale su 429 e 5xx (specifiche 6.1 punto 3).
 async function get<T>(url: string, tentativi = 5): Promise<T> {
   for (let i = 0; ; i++) {
-    const r = await fetch(url, { headers: { authorization: "Bearer " + (await token()) } });
+    const r = await fetch(url, { headers: { authorization: "Bearer " + (await token()) }, signal: AbortSignal.timeout(SECONDI_CHIAMATA * 1000) });
     if (r.ok) return (await r.json()) as T;
     if ((r.status === 429 || r.status >= 500) && i < tentativi) {
       await new Promise((ok) => setTimeout(ok, Math.min(30_000, 500 * 2 ** i) + Math.random() * 250));
       continue;
     }
-    throw new Error(`Google API ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    throw new Error(`Google API ${r.status}`); // senza il corpo della risposta, come per l'HUB
   }
 }
 

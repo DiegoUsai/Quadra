@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { oreAnomalia, oreControllo } from "@/db/schema";
 import { creaNotifier } from "@/lib/notifier";
 import { leggiFogli } from "@/lib/scadenzario/google";
-import { caricaEccezioni, opzioniOre } from "./eccezioni";
+import { buHub, caricaEccezioni, opzioniOre } from "./eccezioni";
 import { creaCgdSource } from "@/lib/cgd";
 import { chiaveNome, controllaOre, leggiAssenze, type Anomalia, type RispostaHub } from "./ore";
 
@@ -50,7 +50,7 @@ export async function leggiAssenzeMese(anno: number, mese: number) {
 const ETICHETTE: Record<string, string> = { ORE_MANCANTI: "ore mancanti", POSSIBILE_PATRONO: "possibile patrono", ORE_IN_ASSENZA: "ore in assenza", ASSENZA_DISCORDANTE: "assenza solo su HUB", NOME_NON_AGGANCIATO: "nome non agganciato" };
 export const etichetta = (c: string) => ETICHETTE[c] ?? c;
 
-export async function eseguiControlloOre(anno: number, mese: number, bu = process.env.HUB_BU ?? "Diego") {
+export async function eseguiControlloOre(anno: number, mese: number, bu = buHub()) {
   const db = getDb();
   const hub = await creaCgdSource().ore(anno, mese);
   const assenze = await leggiAssenzeMese(anno, mese);
