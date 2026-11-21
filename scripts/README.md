@@ -8,6 +8,7 @@ Si lanciano con `npm run <nome>` (la riga di comando completa è in `package.jso
 | `seed-check.ts` | `npm run seed:check` | verifica i totali di controllo del seed; esce con errore se non tornano |
 | `seed-regole.ts` | `npm run seed:regole` | carica regole, correzioni ed eccezioni iniziali |
 | `budget-importa.ts` | `npm run budget:importa` | crea una versione del budget da un file e, se richiesto, la attiva |
+| `piano-importa.ts` | `npm run piano:importa` | importa una versione del modulo di budget e review dal tracciato per contratto; con `--solo-controllo` legge e controlla senza scrivere, con `--totali` stampa i totali per voce del conto economico |
 | `controllo.ts` | `npm run controllo` | rilegge lo scadenzario e rifà i controlli |
 | `regole.ts` | `npm run regole` | rifà solo il calcolo delle regole |
 | `reset-ingestione.ts` | `npm run reset:ingestione` | riparte da zero con la lettura dello scadenzario |

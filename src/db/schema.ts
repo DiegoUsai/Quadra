@@ -271,3 +271,42 @@ export const cgdProgetto = pgTable("cgd_progetto", {
   bloccato: boolean("bloccato").notNull().default(false),
   lettoIl: timestamp("letto_il", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// --- Modulo di budget e review (specifiche del modulo, sezioni 4 e 9). Granularità per contratto, linea e mese,
+// accanto a budget_versione/budget_riga che restano la fonte delle schede. ---
+// Versione: 0.x sono bozze, 1.0 il budget approvato, poi n.x per le review del trimestre n (decisioni B18 e B24).
+export const pianoVersione = pgTable("piano_versione", {
+  id: serial("id").primaryKey(),
+  anno: integer("anno").notNull(), maggiore: integer("maggiore").notNull(), minore: integer("minore").notNull(),
+  descrizione: text("descrizione").notNull(), fonte: text("fonte"), // nome del file, senza percorsi
+  stato: text("stato").notNull().default("compilazione"), // compilazione | review | chiusa
+  partenzaId: integer("partenza_id"), // versione da cui è stata copiata
+  creataIl: timestamp("creata_il", { withTimezone: true }).defaultNow().notNull(), creataDa: text("creata_da"),
+}, (t) => [uniqueIndex("piano_versione_numero").on(t.anno, t.maggiore, t.minore)]);
+
+// Contratto, opportunità o contenitore delle voci di BU dentro una versione. La probabilità sta qui e le righe la ereditano (B5, B20).
+export const pianoContratto = pgTable("piano_contratto", {
+  id: serial("id").primaryKey(),
+  versioneId: integer("versione_id").notNull(),
+  contratto: text("contratto").notNull(), // Id Contratto dello scadenzario, nome dell'opportunità o della voce di BU
+  genere: text("genere").notNull(), // contratto | opportunita | bu
+  stato: text("stato"), // contrattualizzato | pipeline | target | bu; null se lo stato dello scadenzario non è riconosciuto
+  statoScadenzario: text("stato_scadenzario"),
+  probabilita: numeric("probabilita", { precision: 5, scale: 4 }).notNull(),
+  incluso: boolean("incluso").notNull().default(true), // incluso nella versione (B6)
+  pm: text("pm"),
+  inizio: date("inizio"), fine: date("fine"), // date dello scadenzario o presunte per le opportunità
+}, (t) => [uniqueIndex("piano_contratto_chiave").on(t.versioneId, t.contratto)]);
+
+export const pianoRiga = pgTable("piano_riga", {
+  id: serial("id").primaryKey(),
+  versioneId: integer("versione_id").notNull(), contrattoId: integer("contratto_id").notNull(),
+  mese: date("mese").notNull(), // primo giorno del mese
+  tipoVoce: text("tipo_voce").notNull(), // Ricavo | Costo
+  lineaServizio: text("linea_servizio"), // Spec. Voce
+  dettaglio: text("dettaglio"),
+  tipologia: text("tipologia"), // Canone | Corpo | Consumo; vuota per le voci di BU
+  macroVoceCe: text("macro_voce_ce"),
+  importo: euro("importo").notNull(), // pieno; il pesato si calcola con la probabilità del contratto
+  nota: text("nota"),
+});
