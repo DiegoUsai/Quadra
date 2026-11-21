@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: "30 5 * * *" # 06:30 o 07:30 in Italia, a seconda dell'ora legale
   workflow_dispatch: {}
+# Il job non usa il GITHUB_TOKEN: nessun permesso.
+permissions: {}
 jobs:
   ore:
     runs-on: ubuntu-latest

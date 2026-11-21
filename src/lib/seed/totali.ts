@@ -1,12 +1,20 @@
 // Totali di controllo del seed (specifiche, sezione 15.1). Funzioni pure: usate dal test e dallo script.
+import fs from "node:fs";
+import path from "node:path";
 export type Riga = { fonte: string; anno: number; mese: number; tipo: string; gruppo: string; importo: number };
 
-export const ATTESI = {
-  righeDettaglio: 6151,
-  canoni: { 2023: 1902058, 2024: 2258190, 2025: 2584660, 2026: 3183734 },
-  variabile: { 2023: 2506358, 2024: 3409102, 2025: 4000806, 2026: 2106251 },
-  budget2027: { totale: 6961150, canoni: 3401038, mev: 3560111 },
-} as const;
+// I valori attesi sono dati aziendali reali: stanno in data/seed/totali-attesi.json, escluso dal repository come il seed.
+export type Attesi = {
+  righeDettaglio: number;
+  canoni: Record<number, number>;
+  variabile: Record<number, number>;
+  budget2027: { totale: number; canoni: number; mev: number };
+  quotaNonABudget: Record<number, number>; // percentuali intere per anno
+};
+
+export const FILE_ATTESI = path.join(process.cwd(), "data", "seed", "totali-attesi.json");
+export const attesiDisponibili = () => fs.existsSync(FILE_ATTESI);
+export const leggiAttesi = (): Attesi => JSON.parse(fs.readFileSync(FILE_ATTESI, "utf8"));
 
 export function totaliConsuntivo(rows: Riga[]) {
   const out = { canoni: {} as Record<number, number>, variabile: {} as Record<number, number> };
