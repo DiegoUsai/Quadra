@@ -2,7 +2,7 @@
 // Il token di sessione dell'utente sta in HUB_TOKEN (.env.local / variabili Vercel), mai nel repository.
 // ponytail: il token di sessione scade (401); un token di servizio non esiste. Con uno cambia solo `getHub`.
 import type { RispostaHub } from "../hub/ore";
-import type { CgdSource, ProgettoCgd } from "./tipi";
+import type { CgdSource, MensileHub, ProgettoCgd } from "./tipi";
 
 const BASE = "https://hub-api.simaggioli.it/be/api/v1/projects";
 // I job hanno 60 secondi (maxDuration): una singola chiamata ne ha al massimo 15, la lettura dei progetti 45 in tutto,
@@ -47,6 +47,38 @@ export const daDettaglio = (d: Dettaglio): ProgettoCgd => ({
   inizio: giornoRoma(d.contract?.startDate), fine: giornoRoma(d.contract?.endDate), bloccato: !!d.blocked,
 });
 
+const MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+type Riga = Record<string, number | string | null | undefined>;
+type DettaglioMensile = Dettaglio & {
+  cdgProjects?: (Riga & { current_year: number })[];
+  projectCost?: { year: number; additionalCosts?: { date: string; description?: string; cost: number; quantity?: number | null; previsionale?: boolean; type?: { name?: string } | null }[] }[];
+};
+type Reporting = { months?: { name: string; totalHours: number; totalCost: number }[] };
+
+// Dal dettaglio del progetto e dal reporting dell'anno ai vettori mensili. Funzione pura: si prova senza chiamare l'HUB.
+export function daDettaglioMensile(d: DettaglioMensile, rep: Reporting | null, anno: number): MensileHub {
+  const cdg = d.cdgProjects?.find((c) => c.current_year === anno);
+  const nuovo = <T,>(v: T) => MESI.map(() => v);
+  const n = (v: unknown) => (typeof v === "number" ? v : 0);
+  const mesi = rep?.months ?? [];
+  const dellAnno = (d.projectCost?.find((c) => c.year === anno)?.additionalCosts ?? []).filter((a) => !a.previsionale);
+  const altriCosti = nuovo(0), righe: MensileHub["righeAltriCosti"] = [];
+  for (const a of dellAnno) {
+    const giorno = giornoRoma(a.date);
+    if (!giorno || +giorno.slice(0, 4) !== anno) continue;
+    const importo = a.cost * (a.quantity ?? 1);
+    altriCosti[+giorno.slice(5, 7) - 1] += importo;
+    righe.push({ data: giorno, descrizione: a.description ?? "", tipo: a.type?.name ?? null, importo });
+  }
+  return {
+    anno,
+    lavorato: MESI.map((m) => (cdg ? n(cdg["lic_" + m]) : null)),
+    statoMese: MESI.map((m) => (cdg && typeof cdg["stato_" + m] === "string" ? (cdg["stato_" + m] as string) : null)),
+    personale: rep ? { costo: MESI.map((m, i) => n((mesi.find((x) => x.name?.toLowerCase() === m) ?? mesi[i])?.totalCost)), ore: MESI.map((m, i) => n((mesi.find((x) => x.name?.toLowerCase() === m) ?? mesi[i])?.totalHours)) } : null,
+    altriCosti, righeAltriCosti: righe.sort((a, b) => a.data.localeCompare(b.data)),
+  };
+}
+
 export class HubApi implements CgdSource {
   readonly nome = "hub-api";
 
@@ -61,6 +93,15 @@ export class HubApi implements CgdSource {
       out.push(...(await Promise.all(lista.slice(i, i + 5).map(async (p) => daDettaglio(progettoDi(await getHub<Dettaglio | { project: Dettaglio }>(`/projects/${p.id}/detail`)))))));
     }
     return out;
+  }
+
+  // Dettaglio del progetto e reporting dell'anno (due chiamate). Senza reporting per l'anno l'HUB risponde 404: non è un errore.
+  async analisiProgetto(id: number, anno: number): Promise<MensileHub> {
+    const [d, rep] = await Promise.all([
+      getHub<DettaglioMensile | { project: DettaglioMensile }>(`/projects/${id}/detail`),
+      getHub<Reporting>(`/projects/${id}/reporting/${anno}`).catch((e: Error) => { if (e.message === "HUB 404") return null; throw e; }),
+    ]);
+    return daDettaglioMensile(progettoDi(d) as DettaglioMensile, rep, anno);
   }
 
   ore(anno: number, mese: number) {
