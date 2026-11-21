@@ -18,9 +18,15 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           test -n "$APP_BASE_URL" -a -n "$CRON_SECRET" || { echo "secret APP_BASE_URL o CRON_SECRET mancante"; exit 1; }
-          # Le risposte contengono solo conteggi; il log di GitHub non deve mai ricevere nomi di persone.
-          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 20 --max-time 90 \
-            -H "Authorization: Bearer $CRON_SECRET" "${APP_BASE_URL%/}/api/jobs/ore"
+          # Le due chiamate sono indipendenti: un errore della prima (es. token HUB scaduto) non salta la seconda.
+          # Il job resta rosso se una delle due fallisce. Le risposte contengono solo conteggi: niente nomi nel log di GitHub.
+          ko=0
+          chiama() {
+            curl --fail-with-body --silent --show-error --retry 3 --retry-delay 20 --max-time 90 \
+              -H "Authorization: Bearer $CRON_SECRET" "${APP_BASE_URL%/}$1" || { echo "::error::$1 non riuscita"; ko=1; }
+            echo
+          }
+          chiama /api/jobs/ore
           # Lettura del CGD (HUB) e ricalcolo delle anomalie del gruppo G.
-          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 20 --max-time 90 \
-            -H "Authorization: Bearer $CRON_SECRET" "${APP_BASE_URL%/}/api/jobs/cgd"
+          chiama /api/jobs/cgd
+          exit $ko

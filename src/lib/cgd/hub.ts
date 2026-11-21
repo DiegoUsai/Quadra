@@ -5,12 +5,20 @@ import type { RispostaHub } from "../hub/ore";
 import type { CgdSource, ProgettoCgd } from "./tipi";
 
 const BASE = "https://hub-api.simaggioli.it/be/api/v1/projects";
+// I job hanno 60 secondi (maxDuration): una singola chiamata ne ha al massimo 15, la lettura dei progetti 45 in tutto,
+// così un HUB lento produce un errore esplicito (e la notifica al canale tecnico) invece di un'interruzione muta.
+const SECONDI_CHIAMATA = 15;
+export const SECONDI_LETTURA = 45;
 
 export async function getHub<T>(percorso: string, tentativi = 3): Promise<T> {
   const token = process.env.HUB_TOKEN;
   if (!token) throw new Error("HUB_TOKEN non impostata");
   for (let i = 0; ; i++) {
-    const r = await fetch(BASE + percorso, { headers: { "x-auth-token": token, accept: "application/json" } });
+    const r = await fetch(BASE + percorso, { headers: { "x-auth-token": token, accept: "application/json" }, signal: AbortSignal.timeout(SECONDI_CHIAMATA * 1000) })
+      .catch((e: unknown) => {
+        if (e instanceof Error && e.name === "TimeoutError") throw new Error(`HUB: nessuna risposta entro ${SECONDI_CHIAMATA} secondi`);
+        throw e;
+      });
     if (r.ok) return (await r.json()) as T;
     if (r.status === 401) throw new Error("HUB: token scaduto o non valido (401), va rinnovato");
     if ((r.status === 429 || r.status >= 500) && i < tentativi) {
@@ -45,10 +53,13 @@ export class HubApi implements CgdSource {
   // L'elenco contiene tutti i progetti, ma solo quelli che l'utente del token gestisce hanno il contratto (gli altri hanno solo nome e
   // descrizione): si legge il dettaglio solo di quelli, cinque alla volta per non sovraccaricare l'HUB.
   async progetti(): Promise<ProgettoCgd[]> {
+    const scadenza = Date.now() + SECONDI_LETTURA * 1000;
     const lista = (await getHub<{ id: number; contract?: unknown }[]>("/projects")).filter((p) => p.contract);
     const out: ProgettoCgd[] = [];
-    for (let i = 0; i < lista.length; i += 5)
+    for (let i = 0; i < lista.length; i += 5) {
+      if (Date.now() > scadenza) throw new Error(`HUB troppo lento: letti ${out.length} progetti su ${lista.length} in ${SECONDI_LETTURA} secondi, tabella non toccata`);
       out.push(...(await Promise.all(lista.slice(i, i + 5).map(async (p) => daDettaglio(progettoDi(await getHub<Dettaglio | { project: Dettaglio }>(`/projects/${p.id}/detail`)))))));
+    }
     return out;
   }
 
