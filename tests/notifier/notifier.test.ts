@@ -144,6 +144,11 @@ describe("invio a mano di una sola anomalia", () => {
     expect(t).toContain("https://quadra.example.com/anomalie?stato=tutte&q=CTR_1");
     expect(t).not.toMatch(/100\.000|90\.000|€/); // gli importi restano in Quadra
   });
+  it("il testo di ripiego (quello della notifica push) è filtrato come i blocchi: niente <!channel> dal foglio", () => {
+    const m = messaggioSingola("C1", an(3, { nomeRegola: "Valore <!channel> fuori elenco", entitaChiave: "<!channel>" } as Partial<AnomaliaNotifica>), ctx);
+    expect(m.testo).not.toContain("<!channel>");
+    expect(m.testo).toContain("&lt;!channel&gt;");
+  });
   it("D07 rimanda alla pagina Da mettere a budget", () => {
     expect(testi(messaggioSingola("C1", an(2, { regola: "D07" }), ctx))).toContain("/budget/da-mettere?stato=tutte");
   });

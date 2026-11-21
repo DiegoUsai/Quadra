@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { auth, authSaltata } from "@/auth";
 import { eseguiControllo } from "@/lib/scadenzario/controllo";
+import { messaggioSicuro } from "@/lib/errori";
 
 const PAGINA = "/budget/da-mettere";
 const ora = () => new Date().toLocaleTimeString("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", minute: "2-digit" });
@@ -24,7 +25,7 @@ export async function aggiornaDaMettere() {
       : `Scadenzario riletto alle ${ora()}: nessuna modifica dall'ultima lettura, controlli rifatti comunque (${r.anomalie?.nuove ?? 0} nuove, ${r.anomalie?.risolte ?? 0} risolte).`;
   } catch (e) {
     errore = true;
-    esito = (e instanceof Error ? e.message : String(e)).slice(0, 200);
+    esito = messaggioSicuro(e, 200);
   }
   redirect(`${PAGINA}?${errore ? "errore" : "esito"}=${encodeURIComponent(esito)}`);
 }

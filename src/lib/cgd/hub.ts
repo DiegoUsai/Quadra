@@ -55,6 +55,8 @@ type DettaglioMensile = Dettaglio & {
 };
 type Reporting = { months?: { name: string; totalHours: number; totalCost: number }[] };
 
+const meseDi = (mesi: NonNullable<Reporting["months"]>, m: string) => mesi.find((x) => x.name?.trim().toLowerCase() === m);
+
 // Dal dettaglio del progetto e dal reporting dell'anno ai vettori mensili. Funzione pura: si prova senza chiamare l'HUB.
 export function daDettaglioMensile(d: DettaglioMensile, rep: Reporting | null, anno: number): MensileHub {
   const cdg = d.cdgProjects?.find((c) => c.current_year === anno);
@@ -74,7 +76,8 @@ export function daDettaglioMensile(d: DettaglioMensile, rep: Reporting | null, a
     anno,
     lavorato: MESI.map((m) => (cdg ? n(cdg["lic_" + m]) : null)),
     statoMese: MESI.map((m) => (cdg && typeof cdg["stato_" + m] === "string" ? (cdg["stato_" + m] as string) : null)),
-    personale: rep ? { costo: MESI.map((m, i) => n((mesi.find((x) => x.name?.toLowerCase() === m) ?? mesi[i])?.totalCost)), ore: MESI.map((m, i) => n((mesi.find((x) => x.name?.toLowerCase() === m) ?? mesi[i])?.totalHours)) } : null,
+    // Mesi cercati per nome, mai per posizione: un mese assente dal reporting vale 0.
+    personale: rep ? { costo: MESI.map((m) => n(meseDi(mesi, m)?.totalCost)), ore: MESI.map((m) => n(meseDi(mesi, m)?.totalHours)) } : null,
     altriCosti, righeAltriCosti: righe.sort((a, b) => a.data.localeCompare(b.data)),
   };
 }

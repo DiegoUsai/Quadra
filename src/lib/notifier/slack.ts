@@ -1,4 +1,5 @@
 import type { Esito, Messaggio, Notifier } from "./tipi";
+import { messaggioSicuro } from "@/lib/errori";
 
 // Slack accetta circa un messaggio al secondo per canale: i messaggi si accodano e si distanziano; su 429 si attende
 // l'intestazione Retry-After e si riprova (specifiche 10.2). Nessuna dipendenza esterna: una chiamata a chat.postMessage.
@@ -30,7 +31,7 @@ export class SlackNotifier implements Notifier {
             headers: { authorization: `Bearer ${this.token}`, "content-type": "application/json; charset=utf-8" },
             body: JSON.stringify({ channel: m.canale, text: m.testo, blocks: m.blocchi, thread_ts: m.thread, unfurl_links: false, unfurl_media: false }),
           });
-        } catch (e) { return { ok: false, errore: "rete: " + (e instanceof Error ? e.message : String(e)) } as Esito; }
+        } catch (e) { return { ok: false, errore: "rete: " + messaggioSicuro(e) } as Esito; }
         if (r.status === 429 && i < this.tentativi) {
           await dormi((Number(r.headers.get("retry-after")) || 2) * 1000 + 250);
           continue;

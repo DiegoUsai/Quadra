@@ -6,6 +6,7 @@ import { auth, authSaltata } from "@/auth";
 import { getDb } from "@/db";
 import { anomalia, anomaliaStorico, auditLog, eccezione } from "@/db/schema";
 import { inviaSingola } from "@/lib/notifier/notifiche";
+import { messaggioSicuro } from "@/lib/errori";
 
 // Presa in carico, riconoscimento come eccezione e risoluzione con nota (specifiche 11.1). Solo Editor e Admin.
 async function utente() {
@@ -59,7 +60,7 @@ export async function inviaSlack(formData: FormData) {
   const ammessa = da.startsWith("/anomalie") || da.startsWith("/budget/da-mettere"); // solo pagine nostre
   const url = new URL(ammessa ? da : "/anomalie", "http://locale");
   url.searchParams.delete("esito"); url.searchParams.delete("errore");
-  const r = await inviaSingola(id).catch((e: unknown) => ({ ok: false as const, errore: e instanceof Error ? e.message.slice(0, 160) : "invio non riuscito" }));
+  const r = await inviaSingola(id).catch((e: unknown) => ({ ok: false as const, errore: messaggioSicuro(e, 160) }));
   await getDb().insert(auditLog).values({ utente: chi, azione: "anomalia.slack", entita: `anomalia:${id}`, primaJson: null, dopoJson: { esito: r.ok ? "ok" : r.errore } });
   url.searchParams.set(r.ok ? "esito" : "errore", r.ok ? "Inviata su Slack nel canale delle anomalie." : r.errore);
   redirect(`${url.pathname}?${url.searchParams}`);

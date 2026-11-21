@@ -8,6 +8,7 @@ import { leggiFoglio, type Riga } from "./righe";
 import type { Foglio } from "./intestazioni";
 import { aggiornaAnomalie } from "@/lib/regole/persistenza";
 import { inviaNuove, inviaRisoluzioni, notificaErrore } from "@/lib/notifier/notifiche";
+import { messaggioSicuro } from "@/lib/errori";
 
 const FOGLI: Foglio[] = ["Contratti Attivi", "Costi/Ricavi", "Lookup"];
 const a = <T,>(x: T[], n = 500) => Array.from({ length: Math.ceil(x.length / n) }, (_, i) => x.slice(i * n, (i + 1) * n));
@@ -43,7 +44,7 @@ async function regoleENotifiche(runId: number, snapshotId: number): Promise<{ an
     await inviaNuove(runId);
     await inviaRisoluzioni(runId);
     return { anomalie };
-  } catch (e) { return { errore: "dopo la lettura: " + (e instanceof Error ? e.message : String(e)) }; }
+  } catch (e) { return { errore: "dopo la lettura: " + messaggioSicuro(e) }; }
 }
 
 export type OpzioniControllo = {
@@ -99,7 +100,7 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
       return { esito: "struttura_cambiata", runId: run.id, errore: msg };
     }
 
-    const hashContenuto = createHash("sha256").update(letture.map((l) => l.righe.map((r) => r.chiave + r.hash).join()).join("|")).digest("hex");
+    const hashContenuto = createHash("sha256").update(letture.map((l) => l.righe.map((r) => `${r.chiave}:${r.hash}:${r.rigaFoglio}`).join()).join("|")).digest("hex");
     const prec = await db.select().from(rigaCorrente);
     const baseline = prec.length === 0;
     const cambi: { foglio: Foglio; v: Variazione[] }[] = letture.map((l) => ({
@@ -131,7 +132,11 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
     for (const g of a(righeDaScrivere(prec, letture), 300))
       ops.push(db.insert(rigaCorrente).values(g.map(({ foglio, r }) => ({ foglio, chiave: r.chiave, hash: r.hash, dati: r.dati, rigaFoglio: r.rigaFoglio, ultimoSnapshotId: snap.id })))
         .onConflictDoUpdate({ target: [rigaCorrente.foglio, rigaCorrente.chiave], set: { hash: sql`excluded.hash`, dati: sql`excluded.dati`, rigaFoglio: sql`excluded.riga_foglio`, ultimoSnapshotId: snap.id } }));
-    if (ops.length) await db.batch(ops as [typeof ops[0], ...typeof ops]);
+    // Se la scrittura fallisce si toglie lo snapshot appena creato: altrimenti il giro dopo vedrebbe lo stesso hash (o lo
+    // stesso modifiedTime) e si fermerebbe, lasciando righe e variazioni indietro finché il foglio non cambia di nuovo.
+    if (ops.length)
+      try { await db.batch(ops as [typeof ops[0], ...typeof ops]); }
+      catch (e) { await db.delete(snapshotScadenzario).where(eq(snapshotScadenzario.id, snap.id)).catch(() => undefined); throw e; }
 
     // Le regole girano sullo stato appena scritto; poi si inviano le notifiche. Un loro errore non annulla la lettura:
     // si registra nel run e, se serve, si segnala al canale tecnico.
@@ -140,7 +145,7 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
     if (erroreDopo) await notificaErrore("Controllo dello scadenzario: errore dopo la lettura", erroreDopo).catch(() => undefined);
     return { esito: "letto", runId: run.id, snapshotId: snap.id, baseline, variazioni: riepilogo, anomalie, errore: erroreDopo };
   } catch (e) {
-    const errore = e instanceof Error ? e.message : String(e);
+    const errore = messaggioSicuro(e);
     await chiudi("errore", { errore });
     await notificaErrore("Controllo dello scadenzario non eseguito", errore).catch(() => undefined);
     return { esito: "errore", runId: run.id, errore };

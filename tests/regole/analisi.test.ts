@@ -21,14 +21,14 @@ describe("esito di un mese", () => {
 
 describe("blocco mensile", () => {
   it("differenza = scadenzario meno HUB, totali e mesi da verificare", () => {
-    const b = bloccoMensile(dodici({ 1: 1000, 2: 1000, 3: 500 }), dodici({ 1: 1000, 2: 900, 4: 200 }));
+    const b = bloccoMensile(dodici({ 1: 1000, 2: 1000, 3: 500 }), dodici({ 1: 1000, 2: 900, 4: 200 }), 1);
     expect(b.mesi[1]).toMatchObject({ scadenzario: 1000, hub: 900, differenza: 100, esito: "differenza" });
     expect(b.mesi[2].esito).toBe("solo scadenzario");
     expect(b.mesi[3].esito).toBe("solo HUB");
     expect([b.totScadenzario, b.totHub, b.totDifferenza, b.squadrati]).toEqual([2500, 2100, 400, 3]);
   });
   it("senza dati dell'HUB non ci sono totali né squadrature", () => {
-    const b = bloccoMensile(dodici({ 1: 1000 }), null);
+    const b = bloccoMensile(dodici({ 1: 1000 }), null, 1);
     expect([b.totHub, b.totDifferenza, b.squadrati]).toEqual([null, null, 0]);
     expect(b.mesi[0].esito).toBe("nessun dato HUB");
   });
@@ -75,6 +75,11 @@ describe("dal dettaglio dell'HUB ai vettori mensili", () => {
     expect(m.personale!.costo.slice(0, 3)).toEqual([400, 300, 0]);
     expect(m.personale!.ore[1]).toBe(8.5);
   });
+  it("mesi del reporting mai presi per posizione: se mancano gennaio e febbraio, marzo resta a marzo", () => {
+    const solo = daDettaglioMensile(prog, { months: [{ name: "Marzo ", totalHours: 5, totalCost: 200 }, { name: "march", totalHours: 9, totalCost: 900 }] }, 2026);
+    expect(solo.personale!.costo.slice(0, 4)).toEqual([0, 0, 200, 0]);
+    expect(solo.personale!.ore.slice(0, 3)).toEqual([0, 0, 5]);
+  });
   it("costi aggiuntivi: importo per quantità, solo non previsionali dell'anno", () => {
     expect(m.altriCosti[1]).toBe(340);
     expect(m.altriCosti[2]).toBe(0);
@@ -97,7 +102,7 @@ describe("analisi completa", () => {
   it("conta i mesi da verificare una volta sola anche se sbagliano più blocchi", () => {
     const scad = datiScadenzario([movimento("A", "2026-01-01", 1000), costo("2026-01-01", -300)], ["A"], 2026);
     const hub: MensileHub = { anno: 2026, lavorato: dodici({ 1: 900 }), statoMese: Array(12).fill(null), personale: { costo: dodici({}), ore: dodici({}) }, altriCosti: dodici({ 1: 100 }), righeAltriCosti: [] };
-    const a = analizza(scad, hub);
+    const a = analizza(scad, hub, 1);
     expect(a.mesiSquadrati).toBe(1);
     expect([a.ricavi.squadrati, a.personale.squadrati, a.altriCosti.squadrati]).toEqual([1, 0, 1]);
   });

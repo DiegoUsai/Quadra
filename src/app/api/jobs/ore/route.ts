@@ -1,6 +1,7 @@
 import { eseguiControlloOre, notificaOre } from "@/lib/hub/controllo";
 import { notificaErrore } from "@/lib/notifier/notifiche";
 import { segretoValido } from "@/lib/segreto";
+import { messaggioSicuro } from "@/lib/errori";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
     for (const m of mesi) esiti.push({ ...(await eseguiControlloOre(m.anno, m.mese)), notifica: await notificaOre(m.anno, m.mese) });
     return Response.json({ esiti });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e); // il messaggio non contiene dati personali (vedi getHub)
+    const msg = messaggioSicuro(e); // il messaggio non contiene dati personali (vedi getHub)
     await notificaErrore("Controllo ore non eseguito", msg).catch(() => null);
     return Response.json({ errore: msg }, { status: 500 });
   }

@@ -16,8 +16,8 @@ try {
 } catch (e) {
   console.log("Assenze NON lette:", (e as Error).message.slice(0, 120));
 }
-const { caricaEccezioni, opzioniOre } = await import("../src/lib/hub/eccezioni");
-const an = controllaOre(hub, assenze, opzioniOre(await caricaEccezioni(), process.env.HUB_BU ?? "Diego"));
+const { buHub, caricaEccezioni, opzioniOre } = await import("../src/lib/hub/eccezioni");
+const an = controllaOre(hub, assenze, opzioniOre(await caricaEccezioni(), buHub()));
 const per: Record<string, number> = {};
 for (const a of an) per[a.codice] = (per[a.codice] ?? 0) + 1;
 const persone = new Set(an.filter((a) => a.codiceDipendente).map((a) => a.codiceDipendente));

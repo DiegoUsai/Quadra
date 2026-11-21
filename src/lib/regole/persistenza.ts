@@ -27,7 +27,11 @@ export async function contestoCorrente(oggi: string): Promise<Contesto> {
     .from(storicoDettaglio).where(and(eq(storicoDettaglio.fonte, "budget"), eq(storicoDettaglio.tipo, "Ricavo"))).groupBy(storicoDettaglio.progetto, storicoDettaglio.anno, storicoDettaglio.mese))
     .map((b) => ({ ...b, importo: Number(b.importo) }));
   // Variazioni di importo degli ultimi giorni (regola D04)
-  const da = new Date(new Date(oggi + "T00:00:00Z").getTime() - 30 * 86400000);
+  // La finestra segue la soglia «giorni» di D04 come è sulla pagina Regole (più un giorno di margine), non un numero fisso.
+  const [d04] = await db.select({ soglie: regola.sogliaJson }).from(regola).where(eq(regola.codice, "D04"));
+  const giorniD04 = Number((d04?.soglie as Record<string, unknown> | undefined)?.giorni ?? REGOLE.find((r) => r.codice === "D04")?.soglie.giorni);
+  const finestra = Number.isFinite(giorniD04) && giorniD04 > 0 ? Math.ceil(giorniD04) + 1 : 30;
+  const da = new Date(new Date(oggi + "T00:00:00Z").getTime() - finestra * 86400000);
   const vars = await db.select({ chiave: variazione.chiave, foglio: variazione.foglio, campi: variazione.campi, quando: snapshotScadenzario.lettoIl })
     .from(variazione).innerJoin(snapshotScadenzario, eq(variazione.snapshotId, snapshotScadenzario.id)).where(and(eq(variazione.tipo, "modificata"), gte(snapshotScadenzario.lettoIl, da)));
   const variazioni = vars.flatMap((v) => ((v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? []).map((c) => ({ foglio: v.foglio, chiave: v.chiave, campo: c.campo, prima: c.prima, dopo: c.dopo, quando: v.quando.toISOString() })));
@@ -103,7 +107,8 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
     if (e.messaggio !== a.messaggio || e.severita !== a.severita || e.rigaFoglio !== (a.rigaFoglio ?? null) || e.pm !== (a.pm ?? null)
       || e.annoRif !== (anno?.anno ?? null) || e.tipoAnno !== (anno?.tipo ?? null)) aggiorna.push({ id: e.id, a, anno }); // l'anno cambia se cambia la data fine del contratto
     viste2.push(e.id);
-    if (e.stato === "risolta") cambi.push({ id: e.id, stato: "riaperta", nota: "ricomparsa dopo la risoluzione" });
+    // Una risolta che ricompare sotto un'eccezione valida va subito in «riconosciuta»: da riaperta verrebbe notificata.
+    if (e.stato === "risolta") cambi.push(conEccezione ? { id: e.id, stato: "riconosciuta", nota: "ricomparsa, coperta da un'eccezione valida" } : { id: e.id, stato: "riaperta", nota: "ricomparsa dopo la risoluzione" });
     else if (e.stato === "riconosciuta" && !conEccezione) cambi.push({ id: e.id, stato: "riaperta", nota: "eccezione scaduta o rimossa" });
     else if (conEccezione && e.stato !== "riconosciuta") cambi.push({ id: e.id, stato: "riconosciuta", nota: "eccezione valida" });
   }

@@ -2,13 +2,15 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import Form from "next/form";
 import { auth, authSaltata } from "@/auth";
 import { getDb } from "@/db";
-import { cgdProgetto, rigaCorrente } from "@/db/schema";
+import { cgdProgetto, regola, rigaCorrente } from "@/db/schema";
 import { analizza, datiScadenzario, unisciMensili, type Blocco } from "@/lib/cgd/analisi";
 import { confronta, eur } from "@/lib/cgd/confronto";
 import { creaCgdSource } from "@/lib/cgd";
 import type { Dati } from "@/lib/regole/tipi";
+import { REGOLE_G } from "@/lib/regole/gruppoG";
 import Barra from "../Barra";
 import "../anomalie/anomalie.css";
+import { messaggioSicuro } from "@/lib/errori";
 
 export const dynamic = "force-dynamic";
 const cella: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px solid var(--color-border-line)", textAlign: "left", fontSize: 13, verticalAlign: "top" };
@@ -19,7 +21,7 @@ const MESI = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Lug
 const segno = (n: number | null) => { if (n === null) return "—"; const r = Math.round(n); return `${r > 0 ? "+" : r < 0 ? "−" : ""}${eur(Math.abs(r))}`; }; // il segno segue la cifra mostrata: -0,3 € è "0 €"
 const data = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—");
 
-function Tabella({ titolo, nota, blocco, extra }: { titolo: string; nota: string; blocco: Blocco; extra?: { titolo: string; valori: (string | number | null)[] } }) {
+function Tabella({ titolo, nota, blocco, extra, tolleranza }: { titolo: string; nota: string; blocco: Blocco; extra?: { titolo: string; valori: (string | number | null)[] }; tolleranza: number }) {
   return (
     <section style={{ margin: "24px 0" }}>
       <h2 style={{ fontSize: 18, margin: "0 0 2px" }}>{titolo}</h2>
@@ -40,7 +42,7 @@ function Tabella({ titolo, nota, blocco, extra }: { titolo: string; nota: string
             })}
             <tr style={{ fontWeight: 700 }}>
               <td style={cella}>Totale anno</td><td style={num}>{eur(blocco.totScadenzario)}</td><td style={num}>{eur(blocco.totHub)}</td><td style={num}>{segno(blocco.totDifferenza)}</td>
-              {extra && <td style={num} />}<td style={cella}>{blocco.squadrati ? `${blocco.squadrati} ${blocco.squadrati === 1 ? "mese" : "mesi"} da verificare${blocco.totDifferenza !== null && Math.abs(blocco.totDifferenza) <= 1 ? ": il totale dell'anno coincide, cambia solo il mese di competenza" : ""}` : <span style={muto}>ok</span>}</td>
+              {extra && <td style={num} />}<td style={cella}>{blocco.squadrati ? `${blocco.squadrati} ${blocco.squadrati === 1 ? "mese" : "mesi"} da verificare${blocco.totDifferenza !== null && Math.abs(blocco.totDifferenza) <= tolleranza ? ": il totale dell'anno coincide, cambia solo il mese di competenza" : ""}` : <span style={muto}>ok</span>}</td>
             </tr>
           </tbody>
         </table>
@@ -60,7 +62,10 @@ export default async function AnalisiContratto({ searchParams }: { searchParams:
   const annoCorrente = oggi.getFullYear();
   const anno = /^\d{4}$/.test(q.anno ?? "") && +q.anno! >= 2023 && +q.anno! <= annoCorrente + 1 ? +q.anno! : annoCorrente;
   const db = getDb();
-  const [righeDb, progettiDb] = await Promise.all([db.select().from(rigaCorrente).where(eq(rigaCorrente.foglio, "Contratti Attivi")), db.select().from(cgdProgetto)]);
+  const [righeDb, progettiDb, [g04]] = await Promise.all([db.select().from(rigaCorrente).where(eq(rigaCorrente.foglio, "Contratti Attivi")), db.select().from(cgdProgetto), db.select({ soglie: regola.sogliaJson }).from(regola).where(eq(regola.codice, "G04"))]);
+  // La tolleranza è quella di G04 (pagina Regole), non un numero nel codice.
+  const tollG04 = Number((g04?.soglie as Record<string, unknown> | undefined)?.tolleranza ?? REGOLE_G.find((r) => r.codice === "G04")!.soglie.tolleranza);
+  const tolleranza = Number.isFinite(tollG04) && tollG04 >= 0 ? tollG04 : 0;
   const contratti = righeDb.map((r) => ({ chiave: r.chiave, rigaFoglio: r.rigaFoglio, d: r.dati as Dati }));
   const progetti = progettiDb.map((p) => ({ id: p.id, nome: p.nome, ctr: p.ctr, importo: p.importo === null ? null : Number(p.importo), inizio: p.inizio, fine: p.fine, bloccato: p.bloccato }));
   const agganciati = confronta(contratti, progetti).righe.filter((r) => r.hub);
@@ -76,9 +81,9 @@ export default async function AnalisiContratto({ searchParams }: { searchParams:
       ]);
       const scad = datiScadenzario(mov.map((r) => ({ chiave: r.chiave, rigaFoglio: r.rigaFoglio, d: r.dati as Dati })), scelto.contratti, anno);
       const hub = unisciMensili(mensili);
-      risultato = { analisi: analizza(scad, hub), scad, hub };
+      risultato = { analisi: analizza(scad, hub, tolleranza), scad, hub };
     } catch (e) {
-      errore = (e instanceof Error ? e.message : String(e)).slice(0, 200); // il messaggio non contiene importi (vedi getHub)
+      errore = messaggioSicuro(e, 200); // il messaggio non contiene importi (vedi getHub)
     }
   }
 
@@ -122,11 +127,11 @@ export default async function AnalisiContratto({ searchParams }: { searchParams:
             <div><span className="n">{segno(risultato.analisi.altriCosti.totDifferenza)}</span><span className="et">altri costi, anno</span></div>
           </div>
 
-          <Tabella titolo="Ricavi" nota="Scadenzario: righe Ricavo di Costi/Ricavi. HUB: «lic» del controllo di gestione (il lavorato, non il fatturato). Differenza = scadenzario meno HUB." blocco={risultato.analisi.ricavi}
+          <Tabella titolo="Ricavi" nota="Scadenzario: righe Ricavo di Costi/Ricavi. HUB: «lic» del controllo di gestione (il lavorato, non il fatturato). Differenza = scadenzario meno HUB." tolleranza={tolleranza} blocco={risultato.analisi.ricavi}
             extra={{ titolo: "Mese sull'HUB", valori: risultato.hub.statoMese.map((x) => (x ? x.toLowerCase() : null)) }} />
-          <Tabella titolo="Costi del personale" nota="Scadenzario: righe di costo «Costi del personale» (con segno positivo). HUB: reporting delle ore per costo orario. Differenza = scadenzario meno HUB." blocco={risultato.analisi.personale}
+          <Tabella titolo="Costi del personale" nota="Scadenzario: righe di costo «Costi del personale» (con segno positivo). HUB: reporting delle ore per costo orario. Differenza = scadenzario meno HUB." tolleranza={tolleranza} blocco={risultato.analisi.personale}
             extra={{ titolo: "Ore HUB", valori: risultato.hub.personale ? risultato.hub.personale.ore.map((o) => Math.round(o * 10) / 10) : [] }} />
-          <Tabella titolo="Altri costi" nota="Scadenzario: le altre righe di costo (con segno positivo). HUB: costi aggiuntivi del progetto (importo per quantità, per mese della data). Differenza = scadenzario meno HUB." blocco={risultato.analisi.altriCosti} />
+          <Tabella titolo="Altri costi" nota="Scadenzario: le altre righe di costo (con segno positivo). HUB: costi aggiuntivi del progetto (importo per quantità, per mese della data). Differenza = scadenzario meno HUB." tolleranza={tolleranza} blocco={risultato.analisi.altriCosti} />
 
           <details style={{ margin: "16px 0" }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>Righe dello scadenzario ({risultato.scad.righe.length})</summary>

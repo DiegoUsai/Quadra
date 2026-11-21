@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daRighe, opzioniOre } from "@/lib/hub/eccezioni";
+import { buHub, daRighe, opzioniOre } from "@/lib/hub/eccezioni";
 import { attese, patronoPossibile, chiaveNome, controllaOre, leggiAssenze, patrono, type RispostaHub } from "@/lib/hub/ore";
 
 // Dati inventati: nessun dipendente reale.
@@ -99,7 +99,16 @@ describe("controllaOre", () => {
     expect(e.nomiEsclusi).toEqual(["Bianchi Luca"]); // quella scaduta non vale più: l'anomalia si riapre
     expect(e.remoti).toEqual(["Verdi Paolo"]);
     expect(e.orari).toEqual([{ nome: "Gialli Marta", oreGiorno: 6 }, { nome: "Rosa Elena", da: "2026-11-02" }]);
-    expect(opzioniOre(e).bu).toBe("Diego");
+    expect(opzioniOre(e, "Responsabile Uno").bu).toBe("Responsabile Uno");
+  });
+  it("HUB_BU è obbligatoria: senza, il controllo delle ore si ferma con un messaggio chiaro", () => {
+    const prima = process.env.HUB_BU;
+    try {
+      delete process.env.HUB_BU;
+      expect(() => buHub()).toThrow(/HUB_BU non impostata/);
+      process.env.HUB_BU = "  Responsabile Uno ";
+      expect(buHub()).toBe("Responsabile Uno");
+    } finally { if (prima === undefined) delete process.env.HUB_BU; else process.env.HUB_BU = prima; }
   });
   it("più righe per la stessa persona: part-time e presa servizio insieme", () => {
     const u = { user: { codiceDipendente: 5, firstName: "Marta", lastName: "Gialli" }, days: [giorno(2, { rep: 4 }), giorno(3, { rep: 4 })] };

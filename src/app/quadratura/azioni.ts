@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { auth, authSaltata } from "@/auth";
 import { aggiornaCgd } from "@/lib/cgd/aggiorna";
+import { messaggioSicuro } from "@/lib/errori";
 
 // Legge i progetti dall'HUB con il token di sessione di Diego e ricalcola le anomalie G: solo l'amministratore.
 export async function aggiornaDaHub() {
@@ -14,7 +15,7 @@ export async function aggiornaDaHub() {
     esito = `Lettura completata alle ${alle}: ${r.progetti} progetti dall'HUB, ${r.conCtr} con codice CTR.${r.anomalie ? ` Anomalie aggiornate: ${r.anomalie.nuove} nuove, ${r.anomalie.risolte} risolte.` : ""}`;
   } catch (e) {
     errore = true;
-    esito = (e instanceof Error ? e.message : String(e)).slice(0, 200); // il messaggio non contiene importi né nomi (vedi getHub)
+    esito = messaggioSicuro(e, 200); // il messaggio non contiene importi né nomi (vedi getHub)
   }
   redirect(`/quadratura?${errore ? "errore" : "esito"}=${encodeURIComponent(esito)}`);
 }

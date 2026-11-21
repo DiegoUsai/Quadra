@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { auth, authSaltata } from "@/auth";
 import { eseguiControlloOre } from "@/lib/hub/controllo";
+import { messaggioSicuro } from "@/lib/errori";
 
 // Controlla un mese a richiesta (il job automatico copre solo il mese in corso e il precedente). Non invia notifiche:
 // i mesi vecchi si guardano nella pagina, non si segnalano su Slack.
@@ -20,7 +21,7 @@ export async function controllaMese(formData: FormData) {
       ? `Controllo completato alle ${alle}: letti ${r.utentiHub} dipendenti HUB e ${r.righeAssenza} righe di assenza, nessuna segnalazione.`
       : `Controllo completato alle ${alle}: letti ${r.utentiHub} dipendenti HUB e ${r.righeAssenza} righe di assenza; ${r.segnalazioni} segnalazioni (${r.nuove} nuove, ${r.risolte} risolte).`;
   } catch (e) {
-    esito = "ERRORE: " + (e instanceof Error ? e.message : String(e)).slice(0, 200); // i messaggi non contengono dati personali (vedi getHub)
+    esito = "ERRORE: " + messaggioSicuro(e, 200); // i messaggi non contengono dati personali (vedi getHub)
   }
   redirect(`/ore?anno=${anno}&mese=${mese}&${esito.startsWith("ERRORE") ? "errore" : "esito"}=${encodeURIComponent(esito.replace(/^ERRORE: /, ""))}`);
 }

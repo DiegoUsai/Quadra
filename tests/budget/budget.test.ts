@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { confrontoVersioni, fasiBudget, sintesiBudget } from "@/lib/budget/derivati";
 import { decodifica, gruppoDi, leggiMensilizzato, numero } from "@/lib/budget/mensilizzato";
 import { leggiCsv, seedDisponibile } from "@/lib/seed/leggi";
@@ -95,10 +95,15 @@ describe("sintesi e confronto tra versioni", () => {
 
 // Con i dati reali (solo in locale): la versione «review» deve riprodurre esattamente i dati già usati dalle schede.
 describe.skipIf(!seedDisponibile() || !fs.existsSync("data/raw/budget_2027_review.tsv"))("regressione sul seed reale", () => {
-  const review = leggiMensilizzato(decodifica(fs.readFileSync("data/raw/budget_2027_review.tsv")));
-  it("la lettura non ha avvisi e il totale è quello del foglio", () => {
+  // La lettura sta in beforeAll: vitest esegue comunque il corpo del describe quando raccoglie i test, anche se saltato.
+  let review: ReturnType<typeof leggiMensilizzato>;
+  beforeAll(() => { review = leggiMensilizzato(decodifica(fs.readFileSync("data/raw/budget_2027_review.tsv"))); });
+  it("la lettura non ha avvisi e il totale è quello della sintesi del seed", () => {
     expect(review.avvisi).toEqual([]);
-    expect(Math.round(review.totale)).toBe(6961150);
+    // Nessun totale reale scritto nel test: si confronta con la sintesi del seed, arrotondata per riga (scarto al più mezzo euro a riga).
+    const sintesi = leggiCsv("storico_sintesi.csv").filter((r) => r.anno === "2027");
+    const atteso = sintesi.reduce((t, r) => t + +r.budget, 0);
+    expect(Math.abs(review.totale - atteso)).toBeLessThanOrEqual(sintesi.length / 2 + 1);
   });
   it("la sintesi 2027 coincide con quella del seed", () => {
     const seed = leggiCsv("storico_sintesi.csv").filter((r) => r.anno === "2027");

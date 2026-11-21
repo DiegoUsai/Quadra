@@ -1,6 +1,7 @@
 import { aggiornaCgd } from "@/lib/cgd/aggiorna";
 import { notificaErrore } from "@/lib/notifier/notifiche";
 import { segretoValido } from "@/lib/segreto";
+import { messaggioSicuro } from "@/lib/errori";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
   try {
     return Response.json(await aggiornaCgd());
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e); // niente corpo della risposta dell'HUB (vedi getHub)
+    const msg = messaggioSicuro(e); // niente corpo della risposta dell'HUB (vedi getHub)
     await notificaErrore("Lettura del CGD non riuscita", msg).catch(() => null);
     return Response.json({ errore: msg }, { status: 500 });
   }
