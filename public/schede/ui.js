@@ -40,7 +40,8 @@
   }
   const xhead = (f, t) => t + (kindOf(f) === 'pct' ? ' (%)' : kindOf(f) === 'eur' ? ' (€)' : '');
   const toText = (ex, sep) => {
-    const q = s => { s = String(s); return sep === ';' ? (/[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s) : s.replace(/[\t\n]/g, ' '); };
+    // Una cella di testo che inizia con = + - @ verrebbe letta da Excel come formula: si antepone un apice (i numeri restano tali).
+    const q = s => { s = String(s); if (/^[=+\-@\t\r]/.test(s) && !/^-?\d[\d.,]*$/.test(s)) s = "'" + s; return sep === ';' ? (/[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s) : s.replace(/[\t\n]/g, ' '); };
     return [ex.head].concat(ex.rows).map(r => r.map(q).join(sep)).join('\n');
   };
   function flash(btn, t) { btn.textContent = t; setTimeout(() => { btn.textContent = btn.dataset.label; }, 1800); }
@@ -130,8 +131,10 @@
       hide() { t.style.display = 'none'; }
     };
   }
-  const row = (c, name, val) => '<div><span class="sw" style="background:' + c + '"></span>' + name + ': ' + val + '</div>';
-  const head = t => '<div style="color:var(--cds-text-secondary)">' + t + '</div>';
+  // I nomi (progetti, gruppi, fasi) vengono dai dati: si escapano prima di finire nell'innerHTML del tooltip.
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+  const row = (c, name, val) => '<div><span class="sw" style="background:' + c + '"></span>' + esc(name) + ': ' + esc(val) + '</div>';
+  const head = t => '<div style="color:var(--cds-text-secondary)">' + esc(t) + '</div>';
   // tastiera e tocco: stesso contenuto del tooltip al focus, etichetta per i lettori di schermo
   const plain = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   function kbCell(node, tp, f) {
@@ -261,7 +264,7 @@
     }
     cats.forEach((c, i) => {
       svg.append('rect').attr('x', x(c)).attr('y', m.t).attr('width', x.bandwidth()).attr('height', h - m.b - m.t).attr('fill', 'transparent')
-        .call(kb(tp, () => (head(c) + layers.map(l => row(l.color, l.name, eur(l.vals[i]))).join('') + '<div>Totale: ' + eur(tot[i]) + '</div>' + (lineSeries ? '<div>' + lineSeries.name + ': ' + eur(lineSeries.vals[i]) + '</div>' : ''))))        .on('mouseleave', tp.hide);
+        .call(kb(tp, () => (head(c) + layers.map(l => row(l.color, l.name, eur(l.vals[i]))).join('') + '<div>Totale: ' + eur(tot[i]) + '</div>' + (lineSeries ? '<div>' + esc(lineSeries.name) + ': ' + eur(lineSeries.vals[i]) + '</div>' : ''))))        .on('mouseleave', tp.hide);
     });
   }
 

@@ -2,7 +2,10 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 import { neon } from "@neondatabase/serverless";
-import { ATTESI } from "../src/lib/seed/totali";
+import { attesiDisponibili, FILE_ATTESI, leggiAttesi } from "../src/lib/seed/totali";
+
+if (!attesiDisponibili()) { console.error("Manca", FILE_ATTESI, "(totali attesi, specifiche 15.1): copialo dalla cartella dei dati."); process.exit(1); }
+const ATTESI = leggiAttesi();
 
 const sql = neon(process.env.DATABASE_URL!);
 const [{ n }] = await sql.query("select count(*)::int n from storico_dettaglio");
