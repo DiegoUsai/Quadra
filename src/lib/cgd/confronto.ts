@@ -1,5 +1,5 @@
 import type { Contratto } from "../regole/tipi";
-import { isData, num, s } from "../regole/util";
+import { chiuso, isData, num, s } from "../regole/util";
 import { numeroCtr, type ProgettoCgd } from "./tipi";
 
 // Confronto dei contratti dello scadenzario con i progetti del CGD, agganciati sul numero CTR (specifiche 9.5, 16 punti 20 e 40).
@@ -65,3 +65,8 @@ export function confronta(contratti: Contratto[], progetti: ProgettoCgd[], tolle
   }).sort((a, b) => Number(a.ctr) - Number(b.ctr));
   return { righe, soloHub: [...perCtr.values()].filter((h) => !noti.has(h.ctr)).sort((a, b) => Number(a.ctr) - Number(b.ctr)), senzaCtr };
 }
+
+// Contratto chiuso su entrambe le fonti (richiesta di Diego, 21/11/2026): sullo scadenzario tutti gli Id Contratto attivi del CTR hanno
+// uno stato «Chiuso…» (anche «Chiuso (budget non contrattualizzato)»), sull'HUB tutti i progetti del CTR sono bloccati.
+// Chi è chiuso su una sola fonte resta visibile: è una discrepanza da guardare.
+export const chiusoOvunque = (r: Riga) => !!r.hub?.bloccato && r.stati.length > 0 && r.stati.every(chiuso);
