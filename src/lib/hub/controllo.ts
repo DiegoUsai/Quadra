@@ -80,8 +80,10 @@ export async function notificaOre(anno: number, mese: number) {
   for (const a of daAvvisare) per[a.codice] = (per[a.codice] ?? 0) + 1;
   const elenco = Object.entries(per).map(([c, n]) => `${n} ${etichetta(c)}`).join(", ");
   const base = (process.env.APP_BASE_URL ?? "").replace(/\/+$/, "");
-  const esito = await creaNotifier().invia({ canale: process.env.SLACK_CHANNEL_ANOMALIE ?? "", testo: `Controllo ore ${mm(mese)}/${anno}: ${daAvvisare.length} nuove segnalazioni (${elenco}).${base ? ` Dettaglio: ${base}/ore?anno=${anno}&mese=${mese}` : ""}` });
+  const notifier = creaNotifier();
+  const esito = await notifier.invia({ canale: process.env.SLACK_CHANNEL_ANOMALIE ?? "", testo: `Controllo ore ${mm(mese)}/${anno}: ${daAvvisare.length} nuove segnalazioni (${elenco}).${base ? ` Dettaglio: ${base}/ore?anno=${anno}&mese=${mese}` : ""}` });
   if (!esito.ok) return { inviate: 0, errore: esito.errore };
+  if (notifier.nome === "console") return { inviate: daAvvisare.length, prova: true }; // la console non consegna: restano da notificare
   for (const a of daAvvisare) await db.update(oreAnomalia).set({ notificataIl: new Date() }).where(eq(oreAnomalia.id, a.id));
   return { inviate: daAvvisare.length };
 }

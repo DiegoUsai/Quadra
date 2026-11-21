@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { rigaCorrente, runControllo, snapshotScadenzario, variazione } from "@/db/schema";
 import { confronta, type Variazione } from "./diff";
@@ -27,18 +27,56 @@ export function righeDaScrivere(prec: { foglio: string; chiave: string; hash: st
 }
 
 export type EsitoControllo = {
-  esito: "nessuna_modifica" | "letto" | "struttura_cambiata" | "errore";
+  esito: "nessuna_modifica" | "letto" | "struttura_cambiata" | "errore" | "occupato";
   runId: number; snapshotId?: number; baseline?: boolean; variazioni?: Record<string, Record<string, number>>; errore?: string;
   anomalie?: { nuove: number; risolte: number; riaperte: number; prodotte: number };
 };
 
+// Un run "in_corso" più vecchio di così è stato interrotto (Vercel ferma la funzione a 60 secondi): non blocca più nessuno.
+const MINUTI_RUN_APPESO = 5;
+const oggiRoma = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+
+// Regole sullo stato corrente e notifiche. Un loro errore non annulla la lettura: lo si restituisce al chiamante.
+async function regoleENotifiche(runId: number, snapshotId: number): Promise<{ anomalie?: Awaited<ReturnType<typeof aggiornaAnomalie>>; errore?: string }> {
+  try {
+    const anomalie = await aggiornaAnomalie(snapshotId, oggiRoma());
+    await inviaNuove(runId);
+    await inviaRisoluzioni(runId);
+    return { anomalie };
+  } catch (e) { return { errore: "dopo la lettura: " + (e instanceof Error ? e.message : String(e)) }; }
+}
+
+export type OpzioniControllo = {
+  // Il cron giornaliero rivaluta le regole anche se il foglio non è cambiato: eccezioni scadute e regole legate alla data
+  // (scadenze, mesi trascorsi) cambiano esito con il passare dei giorni.
+  rivaluta?: boolean;
+};
+
 // Una esecuzione del controllo (specifiche 6.1). Idempotente: se il file non è cambiato registra un run e termina.
 // Registra SEMPRE un run, anche senza novità, per distinguere "nessuna anomalia" da "controllo non eseguito" (4.2).
-export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale"): Promise<EsitoControllo> {
+// Un solo controllo alla volta: se un altro è in corso, questo si chiude come "occupato" senza leggere né scrivere.
+export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale", opzioni: OpzioniControllo = {}): Promise<EsitoControllo> {
   const db = getDb();
+  const limite = new Date(Date.now() - MINUTI_RUN_APPESO * 60_000);
+  await db.update(runControllo).set({ esito: "errore", terminatoIl: new Date(), errore: "interrotto: superato il tempo massimo della funzione" })
+    .where(and(eq(runControllo.esito, "in_corso"), lt(runControllo.avviatoIl, limite)));
   const [run] = await db.insert(runControllo).values({ origine }).returning({ id: runControllo.id });
+  // Fra due run partiti insieme prosegue quello con l'id più basso: l'altro lo vede e si ferma.
+  const [prima] = await db.select({ id: runControllo.id }).from(runControllo)
+    .where(and(eq(runControllo.esito, "in_corso"), lt(runControllo.id, run.id), gte(runControllo.avviatoIl, limite))).limit(1);
+  if (prima) {
+    const errore = `un altro controllo è in corso (run ${prima.id})`;
+    await db.update(runControllo).set({ esito: "occupato", terminatoIl: new Date(), errore }).where(eq(runControllo.id, run.id));
+    return { esito: "occupato", runId: run.id, errore };
+  }
   const chiudi = async (esito: EsitoControllo["esito"], extra: Partial<typeof runControllo.$inferInsert> = {}) => {
     await db.update(runControllo).set({ esito, terminatoIl: new Date(), ...extra }).where(eq(runControllo.id, run.id));
+  };
+  const senzaModifiche = async (snapshotId: number): Promise<EsitoControllo> => {
+    const dopo: Awaited<ReturnType<typeof regoleENotifiche>> = opzioni.rivaluta ? await regoleENotifiche(run.id, snapshotId) : {};
+    await chiudi("nessuna_modifica", { snapshotId, errore: dopo.errore ?? null });
+    if (dopo.errore) await notificaErrore("Controllo dello scadenzario: errore nel ricalcolo giornaliero", dopo.errore).catch(() => undefined);
+    return { esito: "nessuna_modifica", runId: run.id, snapshotId, anomalie: dopo.anomalie, errore: dopo.errore };
   };
   try {
     const fileId = process.env.SCADENZARIO_SPREADSHEET_ID;
@@ -47,10 +85,8 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
     const [ultimo] = await db.select().from(snapshotScadenzario).orderBy(desc(snapshotScadenzario.id)).limit(1);
     // Il modifiedTime di Drive può restare indietro di minuti rispetto a una modifica appena fatta: quando il controllo è
     // chiesto da una modifica (Apps Script) o da un utente si rilegge sempre; il confronto per hash evita snapshot inutili.
-    if (origine === "cron" && ultimo && ultimo.driveModifiedTime.getTime() === new Date(meta.modifiedTime).getTime()) {
-      await chiudi("nessuna_modifica", { snapshotId: ultimo.id });
-      return { esito: "nessuna_modifica", runId: run.id, snapshotId: ultimo.id };
-    }
+    if (origine === "cron" && ultimo && ultimo.driveModifiedTime.getTime() === new Date(meta.modifiedTime).getTime())
+      return senzaModifiche(ultimo.id);
 
     const valori = await leggiFogli(fileId, FOGLI);
     const letture = FOGLI.map((f) => leggiFoglio(f, valori[f]));
@@ -76,10 +112,7 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
 
     // Snapshot nuovo solo se il contenuto è davvero cambiato (un salvataggio senza modifiche non crea snapshot).
     const [stesso] = ultimo ? [ultimo].filter((u) => u.hashContenuto === hashContenuto) : [];
-    if (stesso) {
-      await chiudi("nessuna_modifica", { snapshotId: stesso.id });
-      return { esito: "nessuna_modifica", runId: run.id, snapshotId: stesso.id };
-    }
+    if (stesso) return senzaModifiche(stesso.id);
 
     const [snap] = await db.insert(snapshotScadenzario).values({
       driveModifiedTime: new Date(meta.modifiedTime), driveVersion: meta.version, hashContenuto,
@@ -102,12 +135,7 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
 
     // Le regole girano sullo stato appena scritto; poi si inviano le notifiche. Un loro errore non annulla la lettura:
     // si registra nel run e, se serve, si segnala al canale tecnico.
-    let anomalie: Awaited<ReturnType<typeof aggiornaAnomalie>> | undefined, erroreDopo: string | undefined;
-    try {
-      anomalie = await aggiornaAnomalie(snap.id, new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }));
-      await inviaNuove(run.id);
-      await inviaRisoluzioni(run.id);
-    } catch (e) { erroreDopo = "dopo la lettura: " + (e instanceof Error ? e.message : String(e)); }
+    const { anomalie, errore: erroreDopo } = await regoleENotifiche(run.id, snap.id);
     await chiudi("letto", { snapshotId: snap.id, nVariazioni: nVar, errore: erroreDopo ?? null });
     if (erroreDopo) await notificaErrore("Controllo dello scadenzario: errore dopo la lettura", erroreDopo).catch(() => undefined);
     return { esito: "letto", runId: run.id, snapshotId: snap.id, baseline, variazioni: riepilogo, anomalie, errore: erroreDopo };

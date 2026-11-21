@@ -112,7 +112,8 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
 
   // Scrittura in un unico passaggio atomico: nessuna anomalia persa a metà run (specifiche 14.2)
   const ops: Parameters<typeof db.batch>[0][number][] = [];
-  for (const g of pezzi(nuove)) ops.push(db.insert(anomalia).values(g));
+  // Rete di sicurezza contro due ricalcoli sovrapposti (controllo e lettura del CGD): una fingerprint già inserita si salta.
+  for (const g of pezzi(nuove)) ops.push(db.insert(anomalia).values(g).onConflictDoNothing({ target: anomalia.fingerprint }));
   for (const g of pezzi(viste2))
     ops.push(db.update(anomalia).set({ ultimaVistaSnapshot: snapshotId }).where(inArray(anomalia.id, g)));
   for (const { id, a, anno } of aggiorna)

@@ -13,7 +13,7 @@ const daCron = (req: Request) => segretoValido(req.headers.get("authorization")?
 async function esegui(cron: boolean) {
   const origine = cron ? "cron" : "manuale";
   const esito = await eseguiControllo(origine);
-  return Response.json(esito, { status: esito.esito === "errore" ? 500 : 200 });
+  return Response.json(esito, { status: esito.esito === "errore" ? 500 : esito.esito === "occupato" ? 409 : 200 });
 }
 
 export async function GET(req: Request) {
