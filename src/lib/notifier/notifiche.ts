@@ -4,7 +4,7 @@ import { getDb } from "@/db";
 import { anomalia, mappaUtente, notifica, regola } from "@/db/schema";
 import { gidFogli } from "@/lib/scadenzario/google";
 import { creaNotifier, type Notifier } from "./index";
-import { messaggioErrore, messaggioNuove, messaggioRiepilogo, messaggioRisoluzione, type AnomaliaNotifica, type Contesto } from "./messaggi";
+import { messaggioErrore, messaggioNuove, messaggioRiepilogo, messaggioRisoluzione, messaggioSingola, type AnomaliaNotifica, type Contesto } from "./messaggi";
 
 // Regole di invio (specifiche 10.2):
 //  - subito le anomalie Bloccanti e Alte nuove, un messaggio per controllo;
@@ -64,6 +64,36 @@ export async function inviaNuove(runId: number | null, notifier: Notifier = crea
   return { inviate: nuove.length };
 }
 
+// Perché un'anomalia non si può inviare a mano: già chiusa, Slack non configurato, canale mancante. Senza errore: null.
+export function controllaInvio(a: { stato: string }, notifier: Pick<Notifier, "nome">, canale: string): string | null {
+  if (!["aperta", "in_carico", "riaperta"].includes(a.stato)) return "L'anomalia non è più da trattare: non si invia.";
+  if (notifier.nome === "console") return "Slack non è configurato (manca SLACK_BOT_TOKEN): nulla è stato inviato.";
+  if (!canale) return "Il canale Slack delle anomalie non è impostato (SLACK_CHANNEL_ANOMALIE).";
+  return null;
+}
+
+// Invio a mano di una sola anomalia, nel canale delle anomalie con il PM menzionato. Vale anche con le notifiche automatiche spente
+// (NOTIFICHE_ATTIVE): è una scelta esplicita di chi preme il pulsante. Segna l'anomalia come già notificata, così il controllo
+// automatico non la rimanda, e registra l'invio: una risoluzione successiva va nello stesso thread.
+export async function inviaSingola(id: number, notifier: Notifier = creaNotifier()): Promise<{ ok: true } | { ok: false; errore: string }> {
+  const db = getDb();
+  const [a] = await db.select().from(anomalia).where(eq(anomalia.id, id));
+  if (!a) return { ok: false, errore: "Anomalia non trovata." };
+  const errore = controllaInvio(a, notifier, canaleAnomalie());
+  if (errore) return { ok: false, errore };
+  const { ctx, nomi } = await contesto();
+  const esito = await notifier.invia(messaggioSingola(canaleAnomalie(), aNotifica({ ...a, nomeRegola: null }, nomi), ctx));
+  if (!esito.ok) {
+    await db.insert(notifica).values({ tipo: "manuale", canale: canaleAnomalie(), anomaliaId: id, esito: "errore", errore: esito.errore });
+    return { ok: false, errore: `Slack ha rifiutato il messaggio: ${esito.errore}` };
+  }
+  await db.batch([
+    db.insert(notifica).values({ tipo: "manuale", canale: esito.canale, anomaliaId: id, esito: "ok", threadTs: esito.ts }),
+    db.update(anomalia).set({ notificataIl: sql`coalesce(${anomalia.notificataIl}, now())` }).where(eq(anomalia.id, id)),
+  ]);
+  return { ok: true };
+}
+
 // Le anomalie notificate e poi risolte si chiudono con una risposta nello stesso thread (una per thread).
 export async function inviaRisoluzioni(runId: number | null, notifier: Notifier = creaNotifier()) {
   if (!attive()) return { saltato: "notifiche non attive" };
@@ -71,7 +101,7 @@ export async function inviaRisoluzioni(runId: number | null, notifier: Notifier 
   const righe = await db.execute(sql`
     select n.thread_ts, n.canale, a.id
     from notifica n join anomalia a on a.id = n.anomalia_id
-    where n.tipo = 'nuove' and n.esito = 'ok' and a.stato = 'risolta'
+    where n.tipo in ('nuove', 'manuale') and n.esito = 'ok' and a.stato = 'risolta'
       and not exists (select 1 from notifica r where r.tipo = 'risoluzione' and r.anomalia_id = a.id and r.inviata_il > n.inviata_il)
   `);
   const gruppi = new Map<string, { canale: string; ids: number[] }>();
