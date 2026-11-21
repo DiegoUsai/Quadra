@@ -83,3 +83,35 @@ describe("gruppo G: scadenzario contro HUB", () => {
     expect(confronta([con("A", null)], [prog(1, "CTR101")]).righe).toEqual([]);
   });
 });
+
+import { afterEach, beforeEach, vi } from "vitest";
+import { HubApi, progettoDi } from "@/lib/cgd/hub";
+
+describe("formato del dettaglio dell'HUB (cambiato il 20/11/2026)", () => {
+  const dett = { id: 7, name: "X", blocked: false, contract: { ctr: "CTR101", amount: 5000, startDate: "2026-01-31T23:00:00.000Z", endDate: null } };
+  it("accetta sia il progetto diretto sia { project, permissions }", () => {
+    expect(progettoDi(dett)).toBe(dett);
+    expect(progettoDi({ project: dett })).toBe(dett);
+    expect(daDettaglio(progettoDi({ project: dett }))).toMatchObject({ id: 7, nome: "X", ctr: "CTR101", inizio: "2026-02-01" });
+  });
+
+  describe("HubApi.progetti", () => {
+    const chiamate: string[] = [];
+    beforeEach(() => {
+      process.env.HUB_TOKEN = "prova";
+      vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+        chiamate.push(url);
+        const risposta = (j: unknown) => ({ ok: true, status: 200, json: async () => j });
+        if (url.endsWith("/projects/projects")) return risposta([{ id: 1, name: "A", description: "", contract: { ctr: "CTR101" } }, { id: 2, name: "B", description: "" }, { id: 3, name: "C", description: "" }]);
+        return risposta({ project: { ...dett, id: Number(url.match(/projects\/(\d+)\/detail/)![1]) }, permissions: { full: true } });
+      }));
+    });
+    afterEach(() => { vi.unstubAllGlobals(); chiamate.length = 0; });
+    it("legge il dettaglio solo dei progetti con il contratto e legge il formato avvolto", async () => {
+      const p = await new HubApi().progetti();
+      expect(p.map((x) => x.id)).toEqual([1]);
+      expect(p[0]).toMatchObject({ nome: "X", ctr: "CTR101", importo: 5000 });
+      expect(chiamate.filter((u) => u.includes("/detail"))).toHaveLength(1); // i progetti senza contratto (solo nome e descrizione) non si scaricano
+    });
+  });
+});

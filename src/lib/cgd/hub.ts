@@ -30,6 +30,9 @@ export function giornoRoma(iso: string | null | undefined): string | null {
 
 type Dettaglio = { id: number; name: string; blocked?: boolean; contract?: { ctr?: string | null; amount?: number | null; startDate?: string | null; endDate?: string | null } | null };
 
+// Dal 20/11/2026 il dettaglio arriva avvolto in { project, permissions } (prima era il progetto stesso): si accettano entrambe le forme.
+export const progettoDi = (r: Dettaglio | { project: Dettaglio }): Dettaglio => ("project" in r ? r.project : r);
+
 export const daDettaglio = (d: Dettaglio): ProgettoCgd => ({
   id: d.id, nome: d.name, ctr: d.contract?.ctr ?? null,
   importo: typeof d.contract?.amount === "number" ? d.contract.amount : null,
@@ -39,12 +42,13 @@ export const daDettaglio = (d: Dettaglio): ProgettoCgd => ({
 export class HubApi implements CgdSource {
   readonly nome = "hub-api";
 
-  // Elenco dei progetti visibili al token, poi il dettaglio di ciascuno (cinque alla volta per non sovraccaricare l'HUB).
+  // L'elenco contiene tutti i progetti, ma solo quelli che l'utente del token gestisce hanno il contratto (gli altri hanno solo nome e
+  // descrizione): si legge il dettaglio solo di quelli, cinque alla volta per non sovraccaricare l'HUB.
   async progetti(): Promise<ProgettoCgd[]> {
-    const lista = await getHub<{ id: number }[]>("/projects");
+    const lista = (await getHub<{ id: number; contract?: unknown }[]>("/projects")).filter((p) => p.contract);
     const out: ProgettoCgd[] = [];
     for (let i = 0; i < lista.length; i += 5)
-      out.push(...(await Promise.all(lista.slice(i, i + 5).map(async (p) => daDettaglio(await getHub<Dettaglio>(`/projects/${p.id}/detail`))))));
+      out.push(...(await Promise.all(lista.slice(i, i + 5).map(async (p) => daDettaglio(progettoDi(await getHub<Dettaglio | { project: Dettaglio }>(`/projects/${p.id}/detail`)))))));
     return out;
   }
 
