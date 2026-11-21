@@ -12,6 +12,20 @@ import { inviaNuove, inviaRisoluzioni, notificaErrore } from "@/lib/notifier/not
 const FOGLI: Foglio[] = ["Contratti Attivi", "Costi/Ricavi", "Lookup"];
 const a = <T,>(x: T[], n = 500) => Array.from({ length: Math.ceil(x.length / n) }, (_, i) => x.slice(i * n, (i + 1) * n));
 
+// Righe da riscrivere in riga_corrente: quelle con dati cambiati e quelle solo spostate nel foglio (riga inserita o
+// cancellata sopra), altrimenti il numero di riga resta vecchio e i link "Apri nel foglio" puntano alla riga sbagliata.
+export function righeDaScrivere(prec: { foglio: string; chiave: string; hash: string; rigaFoglio: number | null }[], letture: { foglio: Foglio; righe: Riga[] }[]) {
+  const out: { foglio: Foglio; r: Riga }[] = [];
+  for (const l of letture) {
+    const noti = new Map(prec.filter((p) => p.foglio === l.foglio).map((p) => [p.chiave, p]));
+    for (const r of l.righe) {
+      const p = noti.get(r.chiave);
+      if (!p || p.hash !== r.hash || p.rigaFoglio !== r.rigaFoglio) out.push({ foglio: l.foglio, r });
+    }
+  }
+  return out;
+}
+
 export type EsitoControllo = {
   esito: "nessuna_modifica" | "letto" | "struttura_cambiata" | "errore";
   runId: number; snapshotId?: number; baseline?: boolean; variazioni?: Record<string, Record<string, number>>; errore?: string;
@@ -81,15 +95,10 @@ export async function eseguiControllo(origine: "cron" | "apps_script" | "manuale
       const eliminate = c.v.filter((x) => x.tipo === "eliminata").map((x) => x.chiave);
       for (const g of a(eliminate)) ops.push(db.delete(rigaCorrente).where(sql`${rigaCorrente.foglio} = ${c.foglio} and ${inArray(rigaCorrente.chiave, g)}`));
     }
-    const righeDaScrivere: { foglio: Foglio; r: Riga }[] = [];
-    for (const l of letture) {
-      const noti = new Map(prec.filter((p) => p.foglio === l.foglio).map((p) => [p.chiave, p.hash]));
-      for (const r of l.righe) if (noti.get(r.chiave) !== r.hash) righeDaScrivere.push({ foglio: l.foglio, r });
-    }
-    for (const g of a(righeDaScrivere, 300))
+    for (const g of a(righeDaScrivere(prec, letture), 300))
       ops.push(db.insert(rigaCorrente).values(g.map(({ foglio, r }) => ({ foglio, chiave: r.chiave, hash: r.hash, dati: r.dati, rigaFoglio: r.rigaFoglio, ultimoSnapshotId: snap.id })))
         .onConflictDoUpdate({ target: [rigaCorrente.foglio, rigaCorrente.chiave], set: { hash: sql`excluded.hash`, dati: sql`excluded.dati`, rigaFoglio: sql`excluded.riga_foglio`, ultimoSnapshotId: snap.id } }));
-    await db.batch(ops as [typeof ops[0], ...typeof ops]);
+    if (ops.length) await db.batch(ops as [typeof ops[0], ...typeof ops]);
 
     // Le regole girano sullo stato appena scritto; poi si inviano le notifiche. Un loro errore non annulla la lettura:
     // si registra nel run e, se serve, si segnala al canale tecnico.
