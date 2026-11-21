@@ -33,7 +33,7 @@ export default async function Storico({ searchParams }: { searchParams: Promise<
 
   // Ordinamento: colonna e verso dai parametri; di default la data, dal più recente.
   const colonne = vista === "controlli" ? COL_RUN : COL_DIFF;
-  const ord = (f.ord && f.ord in colonne ? f.ord : "data") as keyof typeof colonne;
+  const ord = (f.ord && Object.hasOwn(colonne, f.ord) ? f.ord : "data") as keyof typeof colonne;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : ord === "data" || ord === "variazioni" ? "desc" : "asc";
   const verso = dir === "asc" ? asc : desc;
 

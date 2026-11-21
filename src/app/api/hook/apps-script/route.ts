@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 const Corpo = z.object({
   avvia: z.boolean().optional(),
   modifiche: z.array(z.object({
-    quando: z.string().optional(), utente: z.string().nullish(), foglio: z.string(), cella: z.string(),
+    // Una data illeggibile non deve far rifiutare il lotto (l'Apps Script lo ritenterebbe per sempre): diventa null.
+    quando: z.string().optional().transform((s) => (s && !Number.isNaN(Date.parse(s)) ? new Date(s) : null)), utente: z.string().nullish(), foglio: z.string(), cella: z.string(),
     vecchio: z.string().nullish(), nuovo: z.string().nullish(), nCelle: z.number().int().positive().default(1),
   })).max(500).default([]),
 });
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   if (!p.success) return new Response("corpo non valido", { status: 400 });
   if (p.data.modifiche.length)
     await getDb().insert(modificaCella).values(p.data.modifiche.map((m) => ({
-      quando: m.quando ? new Date(m.quando) : null, utente: m.utente ?? null, foglio: m.foglio, cella: m.cella,
+      quando: m.quando, utente: m.utente ?? null, foglio: m.foglio, cella: m.cella,
       vecchioValore: m.vecchio ?? null, nuovoValore: m.nuovo ?? null, nCelle: m.nCelle,
     })));
   const esito = p.data.avvia ? await eseguiControllo("apps_script") : undefined;

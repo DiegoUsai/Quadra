@@ -58,3 +58,18 @@ describe("righe e diff", () => {
     expect(confronta(v, v)).toEqual([]);
   });
 });
+
+describe("righe da riscrivere", async () => {
+  const { righeDaScrivere } = await import("@/lib/scadenzario/controllo");
+  const riga = (chiave: string, hash: string, rigaFoglio: number) => ({ chiave, hash, rigaFoglio, dati: {} });
+  const prec = [{ foglio: "Contratti Attivi", chiave: "C1", hash: "h1", rigaFoglio: 2 }, { foglio: "Contratti Attivi", chiave: "C2", hash: "h2", rigaFoglio: 3 }];
+
+  it("riscrive una riga spostata anche se i dati non cambiano", () => {
+    const r = righeDaScrivere(prec, [{ foglio: "Contratti Attivi", righe: [riga("C1", "h1", 2), riga("C2", "h2", 4)] }]);
+    expect(r.map((x) => x.r.chiave)).toEqual(["C2"]);
+  });
+  it("riscrive righe nuove e modificate, non quelle invariate", () => {
+    const r = righeDaScrivere(prec, [{ foglio: "Contratti Attivi", righe: [riga("C1", "h1", 2), riga("C2", "hx", 3), riga("C3", "h3", 4)] }]);
+    expect(r.map((x) => x.r.chiave)).toEqual(["C2", "C3"]);
+  });
+});

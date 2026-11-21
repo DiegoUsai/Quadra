@@ -5,6 +5,9 @@ import { REGOLE, eseguiRegole, type Anomalia, type ConfigRegola } from "./indice
 import { annoRifDi, indiceFine } from "./anno";
 import type { Contesto, Dati } from "./tipi";
 
+// Le chiavi ripetute del Lookup portano il numero d'ordine finale "#n" (scadenzario/righe.ts).
+export const chiaveRipetuta = (chiave: string) => /#\d+$/.test(chiave);
+
 const pezzi = <T,>(x: T[], n = 400) => Array.from({ length: Math.ceil(x.length / n) }, (_, i) => x.slice(i * n, (i + 1) * n));
 
 // Inserisce nel database le regole che mancano (con i valori iniziali del codice) senza toccare quelle già modificate.
@@ -28,7 +31,7 @@ export async function contestoCorrente(oggi: string): Promise<Contesto> {
   const vars = await db.select({ chiave: variazione.chiave, foglio: variazione.foglio, campi: variazione.campi, quando: snapshotScadenzario.lettoIl })
     .from(variazione).innerJoin(snapshotScadenzario, eq(variazione.snapshotId, snapshotScadenzario.id)).where(and(eq(variazione.tipo, "modificata"), gte(snapshotScadenzario.lettoIl, da)));
   const variazioni = vars.flatMap((v) => ((v.campi as { campo: string; prima: unknown; dopo: unknown }[] | null) ?? []).map((c) => ({ foglio: v.foglio, chiave: v.chiave, campo: c.campo, prima: c.prima, dopo: c.dopo, quando: v.quando.toISOString() })));
-  const lookup = righe.filter((r) => r.foglio === "Lookup").map((r) => ({ campo: String((r.dati as Dati).campo), valore: String((r.dati as Dati).valore), rigaFoglio: r.rigaFoglio, ripetuto: /#d+$/.test(r.chiave) }));
+  const lookup = righe.filter((r) => r.foglio === "Lookup").map((r) => ({ campo: String((r.dati as Dati).campo), valore: String((r.dati as Dati).valore), rigaFoglio: r.rigaFoglio, ripetuto: chiaveRipetuta(r.chiave) }));
   const righeNuove = new Set((await db.select({ chiave: variazione.chiave }).from(variazione).where(and(eq(variazione.foglio, "Costi/Ricavi"), eq(variazione.tipo, "nuova")))).map((v) => v.chiave));
   const cgd = (await db.select().from(cgdProgetto)).map((p) => ({ id: p.id, nome: p.nome, ctr: p.ctr, importo: p.importo === null ? null : Number(p.importo), inizio: p.inizio, fine: p.fine, bloccato: p.bloccato }));
   return { oggi, contratti: cv("Contratti Attivi"), movimenti: cv("Costi/Ricavi"), budget, variazioni, lookup, righeNuove, cgd };
@@ -55,6 +58,11 @@ export const correzioneCopre = (c: typeof correzione.$inferSelect, a: Anomalia, 
 // (si registrano come già notificate); restano notificate quelle nate dopo la lettura di base (`nuovaDaOggi`).
 export const silenzioso = (a: Pick<Anomalia, "regola" | "entitaTipo" | "baseline" | "nuovaDaOggi">, noti: Set<string>) =>
   a.baseline && !a.nuovaDaOggi && !noti.has(`${a.regola}|${a.entitaTipo}`);
+
+// Anomalie non più prodotte da passare a "risolta". Una regola disattivata non gira, quindi le sue anomalie non "spariscono":
+// restano come sono, senza risoluzioni né messaggi su Slack, e riprendono il loro corso quando la regola torna attiva.
+export const daRisolvere = <T extends { fingerprint: string; regola: string; stato: string }>(esistenti: T[], viste: Set<string>, cfg: Record<string, Partial<ConfigRegola>>) =>
+  esistenti.filter((e) => !viste.has(e.fingerprint) && e.stato !== "risolta" && cfg[e.regola]?.attiva !== false);
 
 // Confronta le anomalie prodotte dalle regole con quelle già registrate (specifiche 5.2, 7.7, 10.2):
 // nuova -> aperta; ricomparsa dopo la risoluzione -> riaperta; sparita -> risolta; eccezione valida -> riconosciuta;
@@ -99,7 +107,7 @@ export async function aggiornaAnomalie(snapshotId: number, oggi: string) {
     else if (e.stato === "riconosciuta" && !conEccezione) cambi.push({ id: e.id, stato: "riaperta", nota: "eccezione scaduta o rimossa" });
     else if (conEccezione && e.stato !== "riconosciuta") cambi.push({ id: e.id, stato: "riconosciuta", nota: "eccezione valida" });
   }
-  const sparite = [...esistenti.values()].filter((e) => !viste.has(e.fingerprint) && e.stato !== "risolta");
+  const sparite = daRisolvere([...esistenti.values()], viste, cfg);
   for (const e of sparite) cambi.push({ id: e.id, stato: "risolta", nota: "non più rilevata dalla regola" });
 
   // Scrittura in un unico passaggio atomico: nessuna anomalia persa a metà run (specifiche 14.2)
