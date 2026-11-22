@@ -23,7 +23,8 @@
     "ore": "tsx scripts/ore.ts",
     "cgd": "tsx scripts/cgd.ts",
     "ore:import": "tsx scripts/ore-import.ts",
-    "budget:importa": "tsx scripts/budget-importa.ts"
+    "budget:importa": "tsx scripts/budget-importa.ts",
+    "piano:importa": "tsx scripts/piano-importa.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
