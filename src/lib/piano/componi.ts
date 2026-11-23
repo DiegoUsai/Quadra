@@ -11,8 +11,11 @@ export type ContrattoPiano = {
 };
 export type Composizione = { contratti: ContrattoPiano[]; righe: RigaTracciato[]; avvisi: string[]; fuoriAnno: Record<number, number> };
 
-// I costi che non appartengono a un contratto stanno nel file su contratti fittizi (fase B0, 4.2; decisione B34).
-export const CONTRATTI_BU = ["aicof - attività interne", "servizi generali"];
+// I costi che non appartengono a un contratto stanno nel file su contratti fittizi (fase B0, 4.2; decisioni B34 e B35).
+export const CONTRATTI_BU = [
+  "aicof - attività interne", "servizi generali",
+  "ammortamenti", "hr_acquisti", "produzione_acquisti", "produzione_formazione", "produzione_licenze",
+];
 
 const norm = (s: string) => s.normalize("NFC").toLowerCase().replace(/\s+/g, " ").trim();
 export function statoDaScadenzario(s: string | null): Stato | null {
