@@ -83,6 +83,10 @@ describe("composizione della versione", () => {
   it("riconosce le voci di BU dai contratti fittizi (B34) e le opportunità fuori dallo scadenzario", () => {
     expect(per("AICOF - Attività interne")).toMatchObject({ genere: "bu", stato: "bu", probabilita: 1 });
     expect(per("Servizi generali").genere).toBe("bu");
+    const bu = componiVersione(2027, leggiTracciato(file(["Ammortamenti", "HR_Acquisti", "Produzione_Licenze"].map((k) =>
+      r("01/01/2027", k, "Costo", "", "", "-€ 10,00", "1,0", "Ammortamenti")))).righe, [{ idContratto: "HR_Acquisti", stato: "", pm: null, inizio: null, fine: null }]);
+    expect(bu.contratti.map((x) => x.genere)).toEqual(["bu", "bu", "bu"]);
+    expect(bu.avvisi.filter((a) => a.includes("stato"))).toEqual([]);
     expect(per("OPPORTUNITA_IGNOTA")).toMatchObject({ genere: "opportunita", stato: null, probabilita: 0.2 });
   });
   it("unisce le righe dello stesso contratto anche con maiuscole diverse e usa il nome dello scadenzario", () => {
